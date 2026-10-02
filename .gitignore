@@ -142,6 +142,10 @@ cython_debug/
 *.swo
 *~
 
+# opencode sessions
+.opencode/goals/
+.opencode/logs/
+
 # OS
 .DS_Store
 Thumbs.db
