@@ -1,0 +1,22 @@
+name: eeg-workbench
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pyside6=6.6
+  - mne=1.6
+  - nibabel=5.0
+  - numpy=1.26
+  - scipy=1.12
+  - pandas=2.2
+  - pyedflib=0.1.30
+  - pyyaml=6.0
+  - pip=23.3
+  - pip:
+    - python-dotenv==1.0
+    - openpyxl==3.1
+    - xlrd==2.0
+    - mne-bids==0.12
+    - pyqtgraph==0.13.3
+    - pingouin==0.6.0

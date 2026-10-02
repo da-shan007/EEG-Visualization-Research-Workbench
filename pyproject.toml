@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eeg-workbench"
+version = "0.1.0"
+description = "EEG Visualization Research Workbench"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Research Team"}]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "mne>=1.6",
+    "nibabel>=5.0",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "pandas>=2.2",
+    "pyedflib>=0.1.30",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+    "mne-bids>=0.12",
+    "pyqtgraph>=0.13",
+    "pingouin>=0.6",
+]
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-qt>=4.2",
+    "pytest-cov>=4.1",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7",
+]
+[project.scripts]
+eeg-workbench = "eeg_workbench.main:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["eeg_workbench*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+qt_api = "pyside6"
+markers = [
+    "integration: slower end-to-end integration tests",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "PT", "T20", "SIM", "RET"]
+ignore = ["E501", "TRY003"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

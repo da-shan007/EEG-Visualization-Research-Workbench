@@ -1,0 +1,94 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ============================================================
+  // EEG Visualization Research Workbench — 项目级 OpenCode 配置
+  // 只影响本项目，不改动 ~/.config/opencode 全局配置
+  // ============================================================
+
+  "mcp": {
+    "servers": {
+      // ---- 以下服务器继承全局配置，此处不做改动（保留/开启）----
+      // context7   远程文档查询（Python/MNE/numpy/pandas 文档）
+      // github     远程 GitHub API
+      // gh_grep    GitHub 代码检索（全局/插件提供）
+      // firecrawl  远程网页抓取与搜索
+      // playwright 远程浏览器自动化（用于查文档、看报告 HTML）
+
+      // ---- 新增：MNE-Python 分析服务（本项目的核心 EEG 处理库）----
+      // 41 个结构化工具：读取/滤波/重参考/ICA/epoch/ERP/时频/源定位/连接性/解码
+      // 会话常驻，载入一次 Raw 后逐步处理；PNG 结果写入 results 目录
+      "mne": {
+        "type": "local",
+        "command": [
+          "D:\\EEG-Visualization-Research-Workbench\\.venv\\Scripts\\python.exe",
+          "-m",
+          "mne_mcp",
+          "serve",
+          "--transport",
+          "stdio"
+        ],
+        "enabled": true
+      },
+
+      // ---- 与 EEG/科学计算/软件工程无关的服务器：配置保留但不连接 ----
+      // 注意：项目级同名条目会整体替换全局条目，因此必须重复 type/command。
+      "supabase": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@supabase/mcp-server-supabase@latest"],
+        "disabled": true
+      },
+      "postgres": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@modelcontextprotocol/server-postgres@latest"],
+        "disabled": true
+      },
+      "redis": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@modelcontextprotocol/server-redis@latest"],
+        "disabled": true
+      },
+      "sentry": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@sentry/mcp-server@latest"],
+        "disabled": true
+      },
+      "linear": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@linear/mcp-server@latest"],
+        "disabled": true
+      },
+      "notion": {
+        "type": "local",
+        "command": ["cmd", "/c", "npx", "-y", "@notionhq/mcp-server@latest"],
+        "disabled": true
+      }
+    }
+  },
+
+  // ============================================================
+  // 技能开关：V2 没有 skills 的 disabled 字段，
+  // 用 permission(action=skill, effect=deny) 把技能从模型可见列表中隐藏。
+  // 同 ID 的规则按顺序生效，最后匹配的规则胜出。
+  // ============================================================
+  "permissions": [
+    // --- 数据库 / ORM（本项目不用任何数据库）---
+    { "action": "skill", "resource": "prisma-database-setup", "effect": "deny" },
+    { "action": "skill", "resource": "prisma-orm-setup", "effect": "deny" },
+    { "action": "skill", "resource": "prisma-8", "effect": "deny" },
+    { "action": "skill", "resource": "supabase-postgres-best-practices", "effect": "deny" },
+
+    // --- Web 前端栈（本项目是 PySide6 桌面程序，不是 Web 应用）---
+    { "action": "skill", "resource": "shadcn", "effect": "deny" },
+    { "action": "skill", "resource": "vercel-react-best-practices", "effect": "deny" },
+    { "action": "skill", "resource": "web-design-guidelines", "effect": "deny" },
+
+    // --- 云端模型部署 / Azure Foundry（与 EEG 数据处理无关）---
+    { "action": "skill", "resource": "capacity", "effect": "deny" },
+    { "action": "skill", "resource": "customize", "effect": "deny" },
+    { "action": "skill", "resource": "deploy-model", "effect": "deny" },
+    { "action": "skill", "resource": "finetuning", "effect": "deny" },
+    { "action": "skill", "resource": "microsoft-foundry", "effect": "deny" },
+    { "action": "skill", "resource": "preset", "effect": "deny" }
+  ]
+}

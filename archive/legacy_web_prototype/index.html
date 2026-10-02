@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EEG Visualization Research Workbench</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-mark">EEG</div>
+          <div>
+            <h1>Workbench</h1>
+            <p>Research Interface</p>
+          </div>
+        </div>
+
+        <div class="panel controls-panel">
+          <h2>Acquisition</h2>
+
+          <label class="control">
+            <span>Channel Select</span>
+            <select id="channelSelect"></select>
+          </label>
+
+          <label class="control">
+            <span>Window</span>
+            <div class="value-row">
+              <input id="windowSize" type="range" min="1000" max="12000" step="250" value="4000" />
+              <strong id="windowSizeValue">4.0 s</strong>
+            </div>
+          </label>
+
+          <label class="control">
+            <span>Sample Rate</span>
+            <div class="value-row">
+              <input id="sampleRate" type="range" min="128" max="1000" step="1" value="250" />
+              <strong id="sampleRateValueDisplay">250 Hz</strong>
+            </div>
+          </label>
+
+          <label class="control">
+            <span>Filter</span>
+            <select id="filterMode">
+              <option value="none">None</option>
+              <option value="smooth">Low-pass Smooth</option>
+              <option value="notch">Notch Removal</option>
+            </select>
+          </label>
+
+          <label class="control">
+            <span>Noise</span>
+            <div class="value-row">
+              <input id="noiseLevel" type="range" min="0" max="30" step="1" value="12" />
+              <strong id="noiseLevelValue">12%</strong>
+            </div>
+          </label>
+
+          <label class="control">
+            <span>Drift</span>
+            <div class="value-row">
+              <input id="driftLevel" type="range" min="0" max="20" step="1" value="8" />
+              <strong id="driftLevelValue">8%</strong>
+            </div>
+          </label>
+
+          <label class="control">
+            <span>Gain</span>
+            <div class="value-row">
+              <input id="gainLevel" type="range" min="0.5" max="2.5" step="0.1" value="1.3" />
+              <strong id="gainLevelValue">1.3x</strong>
+            </div>
+          </label>
+        </div>
+
+        <div class="panel action-panel">
+          <button id="togglePlayback" class="primary">Pause</button>
+          <button id="randomizeSignal">Randomize</button>
+          <label class="file-button">
+            <input id="fileInput" type="file" accept=".csv,.txt" />
+            <span>Load CSV</span>
+          </label>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Signal Overview</p>
+            <h2>Realtime EEG Monitor</h2>
+          </div>
+          <div class="status-pill">
+            <span class="dot"></span>
+            <span id="statusText">Live</span>
+          </div>
+        </header>
+
+        <section class="metrics-grid">
+          <article class="metric-card accent-blue">
+            <span>Signal Quality</span>
+            <strong id="signalQualityValue">92.4%</strong>
+          </article>
+          <article class="metric-card accent-green">
+            <span>Alpha Power</span>
+            <strong id="alphaPowerValue">12.6 dB</strong>
+          </article>
+          <article class="metric-card accent-purple">
+            <span>Beta Power</span>
+            <strong id="betaPowerValue">18.4 dB</strong>
+          </article>
+          <article class="metric-card accent-orange">
+            <span>Artifact Index</span>
+            <strong id="artifactValue">6.1%</strong>
+          </article>
+        </section>
+
+        <section class="visual-grid">
+          <div class="panel waveform-panel">
+            <div class="panel-header">
+              <h3>Waveform View</h3>
+              <span id="waveformStatus">Channels: 8</span>
+            </div>
+            <canvas id="waveformCanvas" width="980" height="430"></canvas>
+          </div>
+
+          <div class="panel spectrum-panel">
+            <div class="panel-header">
+              <h3>Frequency Spectrum</h3>
+            </div>
+            <canvas id="spectrumCanvas" width="420" height="260"></canvas>
+          </div>
+        </section>
+
+        <section class="bottom-grid">
+          <div class="panel topography-panel">
+            <div class="panel-header">
+              <h3>Topographic Map</h3>
+            </div>
+            <canvas id="topographyCanvas" width="820" height="220"></canvas>
+          </div>
+
+          <div class="panel events-panel">
+            <div class="panel-header">
+              <h3>Event Timeline</h3>
+            </div>
+            <div id="eventTimeline" class="event-timeline"></div>
+          </div>
+        </section>
+
+        <section class="panel heatmap-panel">
+          <div class="panel-header">
+            <h3>Channel Heatmap</h3>
+            <span id="heatmapStatus">Time × Channel</span>
+          </div>
+          <canvas id="heatmapCanvas" width="1180" height="220"></canvas>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
