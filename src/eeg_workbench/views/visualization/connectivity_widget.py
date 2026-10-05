@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import ConnectivityPlotConfig
+from eeg_workbench.utils.ui import balance_form
 
 
 class ConnectivityWidget(QWidget):
@@ -37,6 +38,7 @@ class ConnectivityWidget(QWidget):
         self._cmb_type = QComboBox()
         self._cmb_type.addItems(["连通性矩阵", "连通性图 (2D)", "3D 脑连通性"])
         type_layout.addRow("类型:", self._cmb_type)
+        balance_form(type_layout)
 
         layout.addWidget(type_group)
 
@@ -62,6 +64,7 @@ class ConnectivityWidget(QWidget):
         self._spin_vmax.setSingleStep(0.1)
         self._spin_vmax.setValue(1)
         matrix_layout.addRow("最大值:", self._spin_vmax)
+        balance_form(matrix_layout)
 
         layout.addWidget(self._matrix_group)
 
@@ -93,6 +96,7 @@ class ConnectivityWidget(QWidget):
         self._spin_edge_scale.setSingleStep(0.1)
         self._spin_edge_scale.setValue(2.0)
         graph_layout.addRow("边宽缩放:", self._spin_edge_scale)
+        balance_form(graph_layout)
 
         layout.addWidget(self._graph_group)
 
@@ -112,6 +116,7 @@ class ConnectivityWidget(QWidget):
         self._chk_show_edges = QCheckBox("显示连接")
         self._chk_show_edges.setChecked(True)
         _3d_layout.addRow("", self._chk_show_edges)
+        balance_form(_3d_layout)
 
         layout.addWidget(self._3d_group)
 

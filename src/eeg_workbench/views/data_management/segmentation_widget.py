@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.services.segmentation import crop_dataset, concatenate_datasets, CropResult
+from eeg_workbench.utils.ui import balance_form
 
 
 class ConcatenateDialog(QDialog):
@@ -179,6 +180,7 @@ class SegmentationWidget(QWidget):
         self._btn_crop.setStyleSheet("font-weight: bold; padding: 8px;")
         self._btn_crop.clicked.connect(self._do_crop)
         crop_layout.addRow("", self._btn_crop)
+        balance_form(crop_layout)
 
         layout.addWidget(crop_group)
 
@@ -229,6 +231,7 @@ class SegmentationWidget(QWidget):
         self._btn_split = QPushButton("分割并导出 Epochs")
         self._btn_split.clicked.connect(self._do_split)
         split_layout.addRow("", self._btn_split)
+        balance_form(split_layout)
 
         layout.addWidget(split_group)
 

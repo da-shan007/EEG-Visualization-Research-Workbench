@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import ReportConfig, ExportFormat
+from eeg_workbench.utils.ui import balance_form
 
 
 class ReportWidget(QWidget):
@@ -47,6 +48,7 @@ class ReportWidget(QWidget):
         self._cmb_format.addItems([fmt.value for fmt in ExportFormat])
         self._cmb_format.setCurrentText("pdf")
         basic_layout.addRow("输出格式:", self._cmb_format)
+        balance_form(basic_layout)
 
         layout.addWidget(basic_group)
 
@@ -121,6 +123,7 @@ class ReportWidget(QWidget):
         self._spin_fig_height.setValue(12)
         self._spin_fig_height.setSuffix(" cm")
         options_layout.addRow("图片高度:", self._spin_fig_height)
+        balance_form(options_layout)
 
         layout.addWidget(options_group)
 

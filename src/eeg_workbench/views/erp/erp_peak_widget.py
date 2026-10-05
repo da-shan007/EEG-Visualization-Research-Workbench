@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
 from eeg_workbench.models.erp import ERPComponent, PeakResult
+from eeg_workbench.utils.ui import balance_form
 
 
 class ERPPeakWidget(QWidget):
@@ -126,6 +127,7 @@ class ERPPeakWidget(QWidget):
         self._btn_custom_detect = QPushButton("检测")
         self._btn_custom_detect.clicked.connect(self._run_custom_detection)
         custom_layout.addRow("", self._btn_custom_detect)
+        balance_form(custom_layout)
 
         right_layout.addWidget(custom_group)
 

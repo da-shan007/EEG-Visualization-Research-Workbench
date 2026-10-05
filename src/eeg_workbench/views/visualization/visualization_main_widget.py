@@ -18,6 +18,7 @@ from eeg_workbench.views.visualization.statistical_widget import StatisticalWidg
 from eeg_workbench.views.visualization.source_widget import SourceVisualizationWidget
 from eeg_workbench.views.visualization.report_widget import ReportWidget
 from eeg_workbench.models.dataset import EEGDataset
+from eeg_workbench.utils.ui import balance_form, wrap_scroll
 
 try:
     from matplotlib.figure import Figure
@@ -29,7 +30,6 @@ except Exception:  # pragma: no cover - matplotlib 缺失时绘图功能整体�
 
 class VisualizationMainWidget(QWidget):
     """可视化模块主面板"""
-
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
@@ -80,13 +80,23 @@ class VisualizationMainWidget(QWidget):
         self._source_widget = SourceVisualizationWidget(self._vm)
         self._report_widget = ReportWidget(self._vm)
 
-        self._tabs.addTab(self._waveform_widget, "波形图")
-        self._tabs.addTab(self._spectral_widget, "频谱图")
-        self._tabs.addTab(self._tfr_widget, "时频图")
-        self._tabs.addTab(self._conn_widget, "连通性")
-        self._tabs.addTab(self._stat_widget, "统计图")
-        self._tabs.addTab(self._source_widget, "源定位")
-        self._tabs.addTab(self._report_widget, "报告生成")
+        # 参数面板内容高（波形面板自然高度约 850px），直接放入标签页会在小窗口下
+        # 被纵向挤压；用滚动区包裹，挤不下时出滚动条而非压缩控件。
+        self._waveform_scroll = wrap_scroll(self._waveform_widget)
+        self._spectral_scroll = wrap_scroll(self._spectral_widget)
+        self._tfr_scroll = wrap_scroll(self._tfr_widget)
+        self._conn_scroll = wrap_scroll(self._conn_widget)
+        self._stat_scroll = wrap_scroll(self._stat_widget)
+        self._source_scroll = wrap_scroll(self._source_widget)
+        self._report_scroll = wrap_scroll(self._report_widget)
+
+        self._tabs.addTab(self._waveform_scroll, "波形图")
+        self._tabs.addTab(self._spectral_scroll, "频谱图")
+        self._tabs.addTab(self._tfr_scroll, "时频图")
+        self._tabs.addTab(self._conn_scroll, "连通性")
+        self._tabs.addTab(self._stat_scroll, "统计图")
+        self._tabs.addTab(self._source_scroll, "源定位")
+        self._tabs.addTab(self._report_scroll, "报告生成")
 
         # ---- 图形显示区（订阅 figure_ready，绘图结果显示在界面） ----
         fig_group = QGroupBox("图形显示")
@@ -103,12 +113,12 @@ class VisualizationMainWidget(QWidget):
         self._fig_container.setMinimumHeight(200)
         fig_layout.addWidget(self._fig_container, 1)
 
-        # 上下分栏：参数标签页 / 图形显示
+        # 上下分栏：参数标签页 / 图形显示（参数面板内容更高，分给它更多空间）
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.addWidget(self._tabs)
         splitter.addWidget(fig_group)
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 4)
+        splitter.setStretchFactor(0, 4)
+        splitter.setStretchFactor(1, 3)
         layout.addWidget(splitter, 1)
 
         # ---- 底部导出进度 ----
@@ -222,7 +232,7 @@ class VisualizationMainWidget(QWidget):
 
     def show_waveform_marker(self, time: float, desc: str) -> None:
         """外部请求在波形上定位事件：切到波形标签页并提示事件位置"""
-        self._tabs.setCurrentWidget(self._waveform_widget)
+        self._tabs.setCurrentWidget(self._waveform_scroll)
         self._lbl_fig_title.setText(f"事件标记: {desc} @ {time:.3f}s —— 点击波形图绘制查看")
         self.status_message.emit(f"已定位到事件: {desc} @ {time:.3f}s")
 
@@ -299,6 +309,7 @@ class VisualizationMainWidget(QWidget):
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
+        balance_form(layout)
 
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._generate_report(

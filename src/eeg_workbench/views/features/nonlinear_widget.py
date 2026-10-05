@@ -94,6 +94,7 @@ class NonlinearWidget(QWidget):
         self._spin_lyap_min_sep.setRange(1, 50)
         self._spin_lyap_min_sep.setValue(10)
         params_layout.addRow("Lyapunov 最小分离:", self._spin_lyap_min_sep)
+        balance_form(params_layout)
 
         layout.addWidget(params_group)
 
@@ -219,4 +220,5 @@ class NonlinearWidget(QWidget):
 
 # 需要导入 numpy
 from eeg_workbench.models.features import NonlinearParams
+from eeg_workbench.utils.ui import balance_form
 import numpy as np

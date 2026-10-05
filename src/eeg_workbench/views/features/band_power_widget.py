@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.models.features import BandPowerParams, SpectralMethod, STANDARD_BANDS
+from eeg_workbench.utils.ui import balance_form
 
 
 class BandPowerWidget(QWidget):
@@ -112,6 +113,7 @@ class BandPowerWidget(QWidget):
         self._chk_adaptive = QCheckBox("自适应多锥")
         self._chk_adaptive.setChecked(True)
         method_layout.addRow("", self._chk_adaptive)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import EffectSize
+from eeg_workbench.utils.ui import balance_form
 
 
 class EffectSizeWidget(QWidget):
@@ -66,6 +67,7 @@ class EffectSizeWidget(QWidget):
         self._spin_confidence.setSingleStep(0.01)
         self._spin_confidence.setValue(0.95)
         param_layout.addRow("置信水平:", self._spin_confidence)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 

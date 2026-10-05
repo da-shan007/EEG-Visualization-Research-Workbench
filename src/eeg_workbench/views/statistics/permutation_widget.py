@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import PermutationParams
+from eeg_workbench.utils.ui import balance_form
 
 
 class PermutationWidget(QWidget):
@@ -60,6 +61,7 @@ class PermutationWidget(QWidget):
         self._spin_n_jobs.setValue(-1)
         self._spin_n_jobs.setSpecialValueText("自动 (所有核心)")
         basic_layout.addRow("并行作业数:", self._spin_n_jobs)
+        balance_form(basic_layout)
 
         layout.addWidget(basic_group)
 
@@ -82,6 +84,7 @@ class PermutationWidget(QWidget):
         self._spin_min_cluster.setRange(1, 100)
         self._spin_min_cluster.setValue(2)
         cluster_layout.addRow("最小簇大小:", self._spin_min_cluster)
+        balance_form(cluster_layout)
 
         layout.addWidget(cluster_group)
 

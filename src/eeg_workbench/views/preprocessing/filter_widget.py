@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.models.preprocessing import FilterParams, FilterType, FilterMethod, FILTER_PRESETS
+from eeg_workbench.utils.ui import balance_form
 
 
 class FilterWidget(QWidget):
@@ -101,6 +102,7 @@ class FilterWidget(QWidget):
         self._cmb_pad.setCurrentText("reflect_limited")
         self._cmb_pad.currentTextChanged.connect(self._on_param_changed)
         adv_layout.addRow("边缘填充:", self._cmb_pad)
+        balance_form(adv_layout)
 
         layout.addWidget(adv_group)
 
@@ -161,6 +163,7 @@ class FilterWidget(QWidget):
         self._spin_h_freq.setValue(40.0)
         self._spin_h_freq.valueChanged.connect(self._on_param_changed)
         layout.addRow("低通截止 (h_freq):", self._spin_h_freq)
+        balance_form(layout)
 
         return tab
 
@@ -216,6 +219,7 @@ class FilterWidget(QWidget):
         self._spin_bandstop_high.setDecimals(2)
         self._spin_bandstop_high.setSuffix(" Hz")
         layout.addRow("带阻高频:", self._spin_bandstop_high)
+        balance_form(layout)
 
         return tab
 

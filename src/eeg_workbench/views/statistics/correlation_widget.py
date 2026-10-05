@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import CorrelationParams, MultipleComparisonCorrection
+from eeg_workbench.utils.ui import balance_form
 
 
 class CorrelationWidget(QWidget):
@@ -40,6 +41,7 @@ class CorrelationWidget(QWidget):
         self._cmb_method.setCurrentText("pearson")
         self._cmb_method.currentTextChanged.connect(self._on_method_changed)
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -63,6 +65,7 @@ class CorrelationWidget(QWidget):
         self._cmb_correction.addItems([m.value for m in MultipleComparisonCorrection])
         self._cmb_correction.setCurrentText("fdr_bh")
         param_layout.addRow("多重校正:", self._cmb_correction)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 
@@ -84,6 +87,7 @@ class CorrelationWidget(QWidget):
         param_layout2.addWidget(QLabel("目标变量 (可选，不选则所有非控制变量):"))
         param_layout2.addWidget(self._lst_target)
         partial_layout.addRow("目标变量:", param_layout2)
+        balance_form(partial_layout)
 
         layout.addWidget(self._partial_group)
 
@@ -122,6 +126,7 @@ class CorrelationWidget(QWidget):
         self._corr_table = QTableWidget()
         self._corr_table.setAlternatingRowColors(True)
         self._corr_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        result_layout.addWidget(self._corr_table)
 
         layout.addWidget(result_group)
 

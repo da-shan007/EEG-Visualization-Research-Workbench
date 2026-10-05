@@ -1,5 +1,6 @@
 """主窗口：整合所有模块的顶层 UI"""
 from __future__ import annotations
+import sys
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot, Qt, QTimer, QSettings
@@ -11,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QCloseEvent
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
@@ -118,15 +120,15 @@ class MainWindow(QMainWindow):
 
         # 元数据编辑
         self._meta_widget = MetadataEditorWidget(self._data_vm)
-        sub_tabs.addTab(self._meta_widget, "元数据")
+        sub_tabs.addTab(wrap_scroll(self._meta_widget), "元数据")
 
         # 事件编辑
         self._event_widget = EventEditorWidget(self._data_vm)
-        sub_tabs.addTab(self._event_widget, "事件编辑")
+        sub_tabs.addTab(wrap_scroll(self._event_widget), "事件编辑")
 
         # 裁剪拼接
         self._seg_widget = SegmentationWidget(self._data_vm)
-        sub_tabs.addTab(self._seg_widget, "裁剪/拼接")
+        sub_tabs.addTab(wrap_scroll(self._seg_widget), "裁剪/拼接")
 
         layout.addWidget(sub_tabs, 1)
 
@@ -556,7 +558,6 @@ class MainWindow(QMainWindow):
 
 def main():
     """程序入口"""
-    import sys
     import os
 
     # 设置高 DPI 缩放 (PySide6 默认启用)
@@ -572,6 +573,13 @@ def main():
 
     # 设置应用样式
     app.setStyle("Fusion")
+
+    # 配置 matplotlib 中文字体（否则图形中文显示为方框）
+    try:
+        from eeg_workbench.utils.fonts import ensure_cjk_font
+        _cjk = ensure_cjk_font()
+    except Exception:
+        _cjk = None
 
     window = MainWindow()
     window.show()

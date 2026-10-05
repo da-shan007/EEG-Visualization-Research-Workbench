@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
 from eeg_workbench.models.erp import EpochParams
+from eeg_workbench.utils.ui import balance_form
 
 
 class ERDSWidget(QWidget):
@@ -130,6 +131,7 @@ class ERDSWidget(QWidget):
         self._cmb_base_mode.addItems(["mean", "ratio", "logratio", "zscore"])
         self._cmb_base_mode.setCurrentText("logratio")
         tf_layout.addRow("校正模式:", self._cmb_base_mode)
+        balance_form(tf_layout)
 
         layout.addWidget(tf_group)
 
@@ -149,6 +151,7 @@ class ERDSWidget(QWidget):
         self._cmb_correction = QComboBox()
         self._cmb_correction.addItems(["none", "fdr", "cluster"])
         stat_layout.addRow("校正方法:", self._cmb_correction)
+        balance_form(stat_layout)
 
         layout.addWidget(stat_group)
 
@@ -304,6 +307,7 @@ class ERDSWidget(QWidget):
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
+        balance_form(layout)
 
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self._vm.plot_erds_topomaps(
@@ -373,6 +377,7 @@ class ERDSConditionDialog(QDialog):
         self._spin_b_tmax.setValue(-0.5)
         row.addWidget(self._spin_b_tmax)
         form.addRow("基线窗:", row)
+        balance_form(form)
 
         layout.addLayout(form)
 

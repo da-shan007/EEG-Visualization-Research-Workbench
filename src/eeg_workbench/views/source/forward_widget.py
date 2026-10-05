@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.models.source import ForwardModelParams, SourceSpaceType
+from eeg_workbench.utils.ui import balance_form, embed_figure
 
 
 class ForwardModelWidget(QWidget):
@@ -79,6 +80,7 @@ class ForwardModelWidget(QWidget):
         self._chk_use_cps = QCheckBox("皮层面补偿 (CPS)")
         self._chk_use_cps.setChecked(True)
         src_layout.addRow("", self._chk_use_cps)
+        balance_form(src_layout)
 
         layout.addWidget(src_group)
 
@@ -107,6 +109,7 @@ class ForwardModelWidget(QWidget):
         self._spin_n_jobs.setValue(-1)
         self._spin_n_jobs.setSpecialValueText("自动 (所有核心)")
         fwd_layout.addRow("并行作业数:", self._spin_n_jobs)
+        balance_form(fwd_layout)
 
         layout.addWidget(fwd_group)
 
@@ -124,7 +127,20 @@ class ForwardModelWidget(QWidget):
 
         layout.addLayout(exec_layout)
 
+        # ---- 在线预览 ----
+        preview_group = QGroupBox("在线预览")
+        preview_layout = QVBoxLayout(preview_group)
+        self._lbl_preview_hint = QLabel("计算导场矩阵后，在此显示敏感度预览。")
+        self._lbl_preview_hint.setStyleSheet("color: #888; font-size: 12px;")
+        self._lbl_preview_hint.setWordWrap(True)
+        preview_layout.addWidget(self._lbl_preview_hint)
+        self._preview_layout = QVBoxLayout()
+        preview_layout.addLayout(self._preview_layout)
+        layout.addWidget(preview_group)
+
         layout.addStretch()
+
+        self._fig_canvas = None
 
     def _connect_signals(self):
         self._vm.dataset_changed.connect(self._on_dataset_changed)
@@ -148,6 +164,7 @@ class ForwardModelWidget(QWidget):
             f"类型: {info['src_type']}"
         )
         self.status_message.emit(f"导场矩阵计算完成: {info['n_sources']} 个源")
+        self._render_sensitivity()
 
     @Slot()
     def _run_forward(self):
@@ -162,10 +179,20 @@ class ForwardModelWidget(QWidget):
 
     @Slot()
     def _plot_sensitivity(self):
+        self._render_sensitivity()
+
+    def _render_sensitivity(self):
+        """敏感度图内嵌渲染（替代原来的外部弹窗）。"""
         if not self._vm._forward_result:
             return
-        from eeg_workbench.services.source import ForwardModelService
-        ForwardModelService.plot_sensitivity(self._vm._forward_result.fwd)
+        try:
+            from eeg_workbench.services.source import ForwardModelService
+            fig = ForwardModelService.plot_sensitivity(self._vm._forward_result.fwd)
+            self._fig_canvas = embed_figure(self._preview_layout, fig)
+            self._lbl_preview_hint.setText("导场敏感度：源位置投影着色（体/面源通用）")
+        except Exception as e:
+            self._lbl_preview_hint.setText(f"敏感度图生成失败: {e}")
+            self.status_message.emit(f"敏感度图失败: {e}")
 
     def _sync_from_vm(self):
         params = self._vm.forward_params
@@ -203,7 +230,7 @@ class ForwardModelWidget(QWidget):
     @Slot()
     def _on_param_changed(self):
         params = ForwardModelParams(
-            source_space_type=self._cmb_src_type.currentText(),
+            source_space_type=SourceSpaceType(self._cmb_src_type.currentText()),
             spacing=self._cmb_spacing.currentText() if self._cmb_src_type.currentText() != "volume" else self._spin_volume_spacing.value(),
             add_dist=self._chk_add_dist.isChecked(),
             fixed=self._chk_fixed.isChecked(),

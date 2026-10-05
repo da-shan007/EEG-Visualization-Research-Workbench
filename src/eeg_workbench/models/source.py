@@ -75,6 +75,11 @@ class HeadModelParams:
     
     def validate(self) -> list[str]:
         errors = []
+        if not isinstance(self.model_type, HeadModelType):
+            errors.append(
+                f"头模型类型无效: {self.model_type!r}（应为 HeadModelType 枚举）"
+            )
+            return errors
         if self.model_type == HeadModelType.BEM:
             n_layers = len(self.conductivity)
             if n_layers not in (1, 3):

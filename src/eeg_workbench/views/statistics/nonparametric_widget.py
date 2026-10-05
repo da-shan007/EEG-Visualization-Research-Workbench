@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import NonparametricParams, StatisticalTest, MultipleComparisonCorrection, EffectSize
+from eeg_workbench.utils.ui import balance_form
 
 
 class NonparametricWidget(QWidget):
@@ -44,6 +45,7 @@ class NonparametricWidget(QWidget):
             self._cmb_test.addItem(desc, enum_val)
         self._cmb_test.currentIndexChanged.connect(self._on_test_changed)
         test_layout.addRow("检验方法:", self._cmb_test)
+        balance_form(test_layout)
 
         layout.addWidget(test_group)
 
@@ -61,6 +63,7 @@ class NonparametricWidget(QWidget):
         self._cmb_correction.setCurrentText("fdr_bh")
         self._cmb_correction.setToolTip("多重比较校正方法")
         param_layout.addRow("多重校正:", self._cmb_correction)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 

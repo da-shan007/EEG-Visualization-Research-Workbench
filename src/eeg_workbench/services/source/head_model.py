@@ -26,6 +26,10 @@ class HeadModelResult:
 class HeadModelService:
     """头模型构建服务"""
 
+    #: 本机可构建的模型类型（FEM/多层模型需外部求解器，后端显式拒绝，
+    #: UI 下拉框只列出此处类型，避免可选但必失败）
+    SUPPORTED_MODEL_TYPES = (HeadModelType.SPHERICAL, HeadModelType.BEM)
+
     @staticmethod
     def build(
         dataset: EEGDataset,

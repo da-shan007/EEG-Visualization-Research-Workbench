@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.models.source import InverseParams, InverseMethod
+from eeg_workbench.utils.ui import balance_form
 
 
 class InverseSolutionWidget(QWidget):
@@ -39,6 +40,7 @@ class InverseSolutionWidget(QWidget):
         self._cmb_method.setCurrentText("mne")
         self._cmb_method.currentTextChanged.connect(self._on_method_changed)
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -77,6 +79,7 @@ class InverseSolutionWidget(QWidget):
         self._cmb_pick_ori = QComboBox()
         self._cmb_pick_ori.addItems(["normal", "max-power", "vector"])
         mne_layout.addRow("朝向选择:", self._cmb_pick_ori)
+        balance_form(mne_layout)
 
         layout.addWidget(self._mne_group)
 
@@ -118,6 +121,7 @@ class InverseSolutionWidget(QWidget):
         self._spin_fmax.setValue(30.0)
         self._spin_fmax.setSuffix(" Hz")
         beam_layout.addRow("频带上限:", self._spin_fmax)
+        balance_form(beam_layout)
 
         layout.addWidget(self._beam_group)
 
@@ -138,6 +142,7 @@ class InverseSolutionWidget(QWidget):
         self._spin_tmax.setSpecialValueText("无 (到尾)")
         self._spin_tmax.setValue(1)
         time_layout.addRow("结束时间:", self._spin_tmax)
+        balance_form(time_layout)
 
         layout.addWidget(time_group)
 

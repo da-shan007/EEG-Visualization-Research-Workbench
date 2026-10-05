@@ -15,6 +15,7 @@ from PySide6.QtGui import QColor, QBrush
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.models.preprocessing import ICAParams, ICAComponentType
 from eeg_workbench.services.preprocessing import ICAService, ICAResult
+from eeg_workbench.utils.ui import balance_form
 
 
 class ICAFitWorker(QObject):
@@ -172,6 +173,7 @@ class ICAWidget(QWidget):
         self._spin_muscle_thresh.setSingleStep(0.05)
         self._spin_muscle_thresh.setValue(0.5)
         param_layout.addRow("肌肉阈值:", self._spin_muscle_thresh)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 

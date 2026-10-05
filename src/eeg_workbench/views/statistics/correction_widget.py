@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import MultipleComparisonCorrection
+from eeg_workbench.utils.ui import balance_form
 
 
 class CorrectionWidget(QWidget):
@@ -39,6 +40,7 @@ class CorrectionWidget(QWidget):
         self._cmb_method.addItems([m.value for m in MultipleComparisonCorrection])
         self._cmb_method.setCurrentText("fdr_bh")
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -57,6 +59,7 @@ class CorrectionWidget(QWidget):
         self._chk_auto_correct.setChecked(True)
         self._chk_auto_correct.setToolTip("运行统计检验时自动应用全局校正")
         param_layout.addRow("", self._chk_auto_correct)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 

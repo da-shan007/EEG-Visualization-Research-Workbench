@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import TFRPlotConfig, TFRParams
+from eeg_workbench.utils.ui import balance_form
 
 
 class TFRWidget(QWidget):
@@ -38,6 +39,7 @@ class TFRWidget(QWidget):
         self._cmb_method.addItems(["morlet", "multitaper", "stft", "stockwell"])
         self._cmb_method.setCurrentText("morlet")
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -68,6 +70,7 @@ class TFRWidget(QWidget):
         self._edit_custom_freqs = QLineEdit()
         self._edit_custom_freqs.setPlaceholderText("可选: 逗号分隔的频率值，如 4,8,12,30")
         freq_layout.addRow("自定义频率:", self._edit_custom_freqs)
+        balance_form(freq_layout)
 
         layout.addWidget(freq_group)
 
@@ -80,6 +83,7 @@ class TFRWidget(QWidget):
         self._spin_n_cycles.setDecimals(1)
         self._spin_n_cycles.setValue(7.0)
         morlet_layout.addRow("周期数:", self._spin_n_cycles)
+        balance_form(morlet_layout)
 
         layout.addWidget(self._morlet_group)
 
@@ -103,6 +107,7 @@ class TFRWidget(QWidget):
         self._cmb_window = QComboBox()
         self._cmb_window.addItems(["hann", "hamming", "blackman"])
         stft_layout.addRow("窗函数:", self._cmb_window)
+        balance_form(stft_layout)
 
         layout.addWidget(self._stft_group)
 
@@ -133,6 +138,7 @@ class TFRWidget(QWidget):
         self._cmb_base_mode.addItems(["mean", "ratio", "logratio", "zscore", "percent"])
         self._cmb_base_mode.setCurrentText("logratio")
         baseline_layout.addRow("校正模式:", self._cmb_base_mode)
+        balance_form(baseline_layout)
 
         layout.addWidget(baseline_group)
 
@@ -156,6 +162,7 @@ class TFRWidget(QWidget):
         self._spin_vmax.setDecimals(2)
         self._spin_vmax.setSpecialValueText("自动")
         display_layout.addRow("最大值:", self._spin_vmax)
+        balance_form(display_layout)
 
         layout.addWidget(display_group)
 

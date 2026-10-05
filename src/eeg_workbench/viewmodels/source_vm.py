@@ -109,13 +109,19 @@ class SourceViewModel(ViewModelBase):
 
     # ---- 参数设置 ----
     def set_head_model_params(self, **kwargs):
+        from eeg_workbench.models.source import HeadModelType
         for k, v in kwargs.items():
             if hasattr(self._head_model_params, k):
+                if k == "model_type" and isinstance(v, str):
+                    v = HeadModelType(v)  # 兼容直接传字符串的调用方
                 setattr(self._head_model_params, k, v)
 
     def set_forward_params(self, **kwargs):
+        from eeg_workbench.models.source import SourceSpaceType
         for k, v in kwargs.items():
             if hasattr(self._forward_params, k):
+                if k == "source_space_type" and isinstance(v, str):
+                    v = SourceSpaceType(v)
                 setattr(self._forward_params, k, v)
 
     def set_inverse_params(self, **kwargs):
@@ -254,7 +260,10 @@ class SourceViewModel(ViewModelBase):
                 return False
             return True
         except Exception as e:
-            self.error_occurred.emit(f"流程失败: {e}")
+            try:
+                self.error_occurred.emit(f"流程失败: {e}")
+            except RuntimeError:
+                pass  # VM 已随窗口销毁，静默忽略
             return False
 
     # ---- 3D 可视化 ----
@@ -327,7 +336,10 @@ class SourceViewModel(ViewModelBase):
     def _add_step(self, name: str, desc: str, time_ms: float):
         step = SourceStepUI(name=name, description=desc, completed=True, processing_time_ms=time_ms)
         self._processing_steps.append(step)
-        self.processing_steps_changed.emit(self._processing_steps)
+        try:
+            self.processing_steps_changed.emit(self._processing_steps)
+        except RuntimeError:
+            pass  # 计算线程回调时 VM 已随窗口销毁，静默忽略
 
     def _notify_available_channels(self):
         pass

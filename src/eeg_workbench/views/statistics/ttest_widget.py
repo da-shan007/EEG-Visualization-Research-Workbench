@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import TTestParams, MultipleComparisonCorrection
+from eeg_workbench.utils.ui import balance_form
 
 
 class TTestWidget(QWidget):
@@ -40,6 +41,7 @@ class TTestWidget(QWidget):
         self._cmb_test_type.setCurrentText("independent")
         self._cmb_test_type.currentTextChanged.connect(self._on_type_changed)
         type_layout.addRow("类型:", self._cmb_test_type)
+        balance_form(type_layout)
 
         layout.addWidget(type_group)
 
@@ -63,6 +65,7 @@ class TTestWidget(QWidget):
         self._spin_confidence.setSingleStep(0.01)
         self._spin_confidence.setValue(0.95)
         two_layout.addRow("置信水平:", self._spin_confidence)
+        balance_form(two_layout)
 
         layout.addWidget(self._two_sample_group)
 
@@ -76,6 +79,7 @@ class TTestWidget(QWidget):
         self._spin_popmean.setDecimals(4)
         self._spin_popmean.setValue(0.0)
         one_layout.addRow("总体均值:", self._spin_popmean)
+        balance_form(one_layout)
 
         layout.addWidget(self._one_sample_group)
 
@@ -87,6 +91,7 @@ class TTestWidget(QWidget):
         self._cmb_correction.addItems([m.value for m in MultipleComparisonCorrection])
         self._cmb_correction.setCurrentText("fdr_bh")
         corr_layout.addRow("校正方法:", self._cmb_correction)
+        balance_form(corr_layout)
 
         layout.addWidget(corr_group)
 
@@ -97,6 +102,7 @@ class TTestWidget(QWidget):
         self._chk_effect_size = QCheckBox("计算效应量")
         self._chk_effect_size.setChecked(True)
         effect_layout.addRow("", self._chk_effect_size)
+        balance_form(effect_layout)
 
         layout.addWidget(effect_group)
 
@@ -188,6 +194,7 @@ class TTestWidget(QWidget):
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
+        balance_form(layout)
 
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.status_message.emit("请先准备分组数据，然后调用 run_ttest 方法")

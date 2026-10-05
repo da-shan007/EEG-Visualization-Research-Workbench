@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import StatisticalPlotConfig
+from eeg_workbench.utils.ui import balance_form
 
 
 class StatisticalWidget(QWidget):
@@ -39,6 +40,7 @@ class StatisticalWidget(QWidget):
         self._cmb_plot_type.addItems(["柱状图", "小提琴图", "箱线图", "雨云图", "森林图", "效应量图"])
         self._cmb_plot_type.setCurrentText("柱状图")
         type_layout.addRow("类型:", self._cmb_plot_type)
+        balance_form(type_layout)
 
         layout.addWidget(type_group)
 
@@ -61,6 +63,7 @@ class StatisticalWidget(QWidget):
         self._spin_conf_level.setSingleStep(0.01)
         self._spin_conf_level.setValue(0.95)
         effect_layout.addRow("置信水平:", self._spin_conf_level)
+        balance_form(effect_layout)
 
         layout.addWidget(effect_group)
 
@@ -93,6 +96,7 @@ class StatisticalWidget(QWidget):
         self._chk_brackets = QCheckBox("显著性括号")
         self._chk_brackets.setChecked(True)
         display_layout.addRow("", self._chk_brackets)
+        balance_form(display_layout)
 
         layout.addWidget(display_group)
 
@@ -107,6 +111,7 @@ class StatisticalWidget(QWidget):
         self._edit_hue_order = QLineEdit()
         self._edit_hue_order.setPlaceholderText("分组变量顺序")
         group_layout.addRow("分组变量顺序:", self._edit_hue_order)
+        balance_form(group_layout)
 
         layout.addWidget(group_group)
 

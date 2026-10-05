@@ -211,10 +211,18 @@ class ICAService:
         labels = {}
         properties = {}
 
-        # 获取成分时间序列（mne 1.13: get_sources(inst, add_channels, start, stop)，无 picks 参数；
+        # 获取成分时间序列（一次计算，供全部成分复用；mne 1.13:
+        # get_sources(inst, add_channels, start, stop)，无 picks 参数；
         # 成分所用通道在 ica.fit(picks=...) 时已确定）
         sources = ica.get_sources(raw)
         source_data = sources.get_data()  # (n_components, n_times)
+
+        # 参考信号一次加载（EOG/ECG），避免逐成分重复 get_data
+        eog_ref = self._load_ref_signal(raw, params.eog_channels) if params.eog_channels else None
+        ecg_ref = self._load_ref_signal(raw, params.ecg_channels) if params.ecg_channels else None
+        # 全部成分与参考信号的相关系数，一次向量化算完
+        eog_corrs = self._corr_all_with_ref(source_data, eog_ref) if eog_ref is not None else None
+        ecg_corrs = self._corr_all_with_ref(source_data, ecg_ref) if ecg_ref is not None else None
 
         # 频率特征分析
         from scipy import signal
@@ -228,17 +236,17 @@ class ICAService:
             comp_label = ICAComponentType.UNKNOWN
             comp_props = {"psd": psd[comp_idx].tolist(), "freqs": freqs.tolist()}
 
-            # 1. EOG 相关性检测
-            if params.eog_channels:
-                eog_corr = self._compute_eog_correlation(ica, raw, comp_idx, params.eog_channels)
+            # 1. EOG 相关性检测（查表：已向量化预计算）
+            if eog_corrs is not None:
+                eog_corr = float(eog_corrs[comp_idx])
                 comp_props["eog_correlation"] = eog_corr
                 if abs(eog_corr) > params.eog_threshold:
                     comp_label = ICAComponentType.EYE_BLINK if eog_corr > 0 else ICAComponentType.EYE_MOVEMENT
                     excluded.append(comp_idx)
 
-            # 2. ECG 相关性检测
-            if params.ecg_channels:
-                ecg_corr = self._compute_ecg_correlation(ica, raw, comp_idx, params.ecg_channels)
+            # 2. ECG 相关性检测（查表：已向量化预计算）
+            if ecg_corrs is not None:
+                ecg_corr = float(ecg_corrs[comp_idx])
                 comp_props["ecg_correlation"] = ecg_corr
                 if abs(ecg_corr) > params.ecg_threshold and comp_label == ICAComponentType.UNKNOWN:
                     comp_label = ICAComponentType.HEARTBEAT
@@ -267,48 +275,55 @@ class ICAService:
 
         return excluded, labels, properties
 
-    def _compute_eog_correlation(self, ica, raw, comp_idx: int, eog_channels: list[str]) -> float:
-        """计算成分与 EOG 通道的相关性"""
+    @staticmethod
+    def _load_ref_signal(raw, channels: list[str]) -> np.ndarray | None:
+        """一次加载参考通道并平均，找不到有效通道返回 None。"""
         try:
-            # 获取成分时间序列
-            sources = ica.get_sources(raw)
-            comp_ts = sources.get_data()[comp_idx]
+            present = [ch for ch in channels if ch in raw.ch_names]
+            if not present:
+                return None
+            data = raw.get_data(picks=present)
+            combined = np.mean(data, axis=0)
+            if not np.all(np.isfinite(combined)) or np.std(combined) == 0:
+                return None
+            return combined
+        except Exception:
+            return None
 
-            # 获取 EOG 数据
-            eog_data = []
-            for ch in eog_channels:
-                if ch in raw.ch_names:
-                    ch_idx = raw.ch_names.index(ch)
-                    eog_data.append(raw.get_data()[ch_idx])
-            
-            if not eog_data:
+    @staticmethod
+    def _corr_all_with_ref(source_data: np.ndarray, ref: np.ndarray) -> np.ndarray:
+        """全部成分与参考信号的 Pearson 相关系数（一次向量化计算）。
+
+        等价于对每个成分逐一 np.corrcoef，但只做一次矩阵乘法；
+        常数/NaN 通道对应位置返回 0.0。
+        """
+        X = np.vstack([np.asarray(source_data, dtype=float), np.asarray(ref, dtype=float)[None, :]])
+        X = X - X.mean(axis=1, keepdims=True)
+        denom = np.sqrt((X ** 2).sum(axis=1))
+        denom[denom == 0] = np.nan
+        with np.errstate(invalid="ignore"):
+            corrs = (X[:-1] @ X[-1]) / (denom[:-1] * denom[-1])
+        return np.where(np.isnan(corrs), 0.0, corrs)
+
+    def _compute_eog_correlation(self, ica, raw, comp_idx: int, eog_channels: list[str]) -> float:
+        """计算成分与 EOG 通道的相关性（保留单成分接口，内部复用向量化实现）。"""
+        try:
+            source_data = ica.get_sources(raw).get_data()
+            ref = self._load_ref_signal(raw, eog_channels)
+            if ref is None:
                 return 0.0
-
-            eog_combined = np.mean(eog_data, axis=0)
-            # 计算相关性
-            corr = np.corrcoef(comp_ts, eog_combined)[0, 1]
-            return float(corr) if not np.isnan(corr) else 0.0
+            return float(self._corr_all_with_ref(source_data, ref)[comp_idx])
         except Exception:
             return 0.0
 
     def _compute_ecg_correlation(self, ica, raw, comp_idx: int, ecg_channels: list[str]) -> float:
-        """计算成分与 ECG 通道的相关性"""
+        """计算成分与 ECG 通道的相关性（保留单成分接口，内部复用向量化实现）。"""
         try:
-            sources = ica.get_sources(raw)
-            comp_ts = sources.get_data()[comp_idx]
-
-            ecg_data = []
-            for ch in ecg_channels:
-                if ch in raw.ch_names:
-                    ch_idx = raw.ch_names.index(ch)
-                    ecg_data.append(raw.get_data()[ch_idx])
-
-            if not ecg_data:
+            source_data = ica.get_sources(raw).get_data()
+            ref = self._load_ref_signal(raw, ecg_channels)
+            if ref is None:
                 return 0.0
-
-            ecg_combined = np.mean(ecg_data, axis=0)
-            corr = np.corrcoef(comp_ts, ecg_combined)[0, 1]
-            return float(corr) if not np.isnan(corr) else 0.0
+            return float(self._corr_all_with_ref(source_data, ref)[comp_idx])
         except Exception:
             return 0.0
 

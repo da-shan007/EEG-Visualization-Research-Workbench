@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QMessageBox, QProgressBar
 )
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.views.preprocessing import (
     FilterWidget, ReferenceWidget, ResampleWidget, ICAWidget, InterpolationWidget
@@ -70,11 +71,11 @@ class PreprocessingMainWidget(QWidget):
         self._ica_widget = ICAWidget(self._vm)
         self._interp_widget = InterpolationWidget(self._vm)
 
-        self._tabs.addTab(self._filter_widget, "滤波")
-        self._tabs.addTab(self._reference_widget, "重参考")
-        self._tabs.addTab(self._resample_widget, "重采样")
-        self._tabs.addTab(self._ica_widget, "ICA")
-        self._tabs.addTab(self._interp_widget, "坏道插值")
+        self._tabs.addTab(wrap_scroll(self._filter_widget), "滤波")
+        self._tabs.addTab(wrap_scroll(self._reference_widget), "重参考")
+        self._tabs.addTab(wrap_scroll(self._resample_widget), "重采样")
+        self._tabs.addTab(wrap_scroll(self._ica_widget), "ICA")
+        self._tabs.addTab(wrap_scroll(self._interp_widget), "坏道插值")
 
         layout.addWidget(self._tabs, 1)
 

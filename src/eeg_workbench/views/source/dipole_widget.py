@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.models.source import DipoleFitParams
+from eeg_workbench.utils.ui import balance_form
 
 
 class DipoleFitWidget(QWidget):
@@ -51,6 +52,7 @@ class DipoleFitWidget(QWidget):
         self._spin_gof_threshold.setSingleStep(0.01)
         self._spin_gof_threshold.setValue(0.9)
         method_layout.addRow("GOF 阈值:", self._spin_gof_threshold)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -85,6 +87,7 @@ class DipoleFitWidget(QWidget):
         row.addWidget(self._spin_guess_z)
 
         guess_layout.addRow("位置 (x,y,z):", row)
+        balance_form(guess_layout)
 
         layout.addWidget(guess_group)
 
@@ -132,6 +135,7 @@ class DipoleFitWidget(QWidget):
         _row_z.addWidget(self._spin_z_min)
         _row_z.addWidget(self._spin_z_max)
         bounds_layout.addRow("Z 范围:", _row_z)
+        balance_form(bounds_layout)
 
         layout.addWidget(bounds_group)
 

@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.models.preprocessing import ResampleParams, ResampleMethod
+from eeg_workbench.utils.ui import balance_form
 
 
 class ResampleWidget(QWidget):
@@ -43,6 +44,7 @@ class ResampleWidget(QWidget):
 
         self._lbl_n_samples = QLabel("-- 样本点")
         info_layout.addRow("样本点数:", self._lbl_n_samples)
+        balance_form(info_layout)
 
         layout.addWidget(info_group)
 
@@ -74,6 +76,7 @@ class ResampleWidget(QWidget):
         self._lbl_ratio = QLabel("倍数: --")
         self._lbl_ratio.setStyleSheet("color: #666;")
         target_layout.addRow("", self._lbl_ratio)
+        balance_form(target_layout)
 
         layout.addWidget(target_group)
 
@@ -98,6 +101,7 @@ class ResampleWidget(QWidget):
         self._cmb_window.setCurrentText("kaiser")
         self._cmb_window.currentTextChanged.connect(self._on_param_changed)
         adv_layout.addRow("窗函数:", self._cmb_window)
+        balance_form(adv_layout)
 
         layout.addWidget(adv_group)
 

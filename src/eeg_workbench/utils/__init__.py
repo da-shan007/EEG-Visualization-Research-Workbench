@@ -18,6 +18,8 @@ from .validators import (
     ValidationResult,
     validate_dataset_complete,
 )
+from .ui import balance_form, wrap_scroll, embed_figure
+from .fonts import ensure_cjk_font, CANDIDATE_CJK_FONTS
 
 __all__ = [
     "standard_montage_names",
@@ -35,4 +37,9 @@ __all__ = [
     "validate_event_consistency",
     "ValidationResult",
     "validate_dataset_complete",
+    "balance_form",
+    "wrap_scroll",
+    "embed_figure",
+    "ensure_cjk_font",
+    "CANDIDATE_CJK_FONTS",
 ]

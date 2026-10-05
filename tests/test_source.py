@@ -52,6 +52,12 @@ class TestHeadModelParams:
             params = create_head_model_params(preset)
             assert isinstance(params, HeadModelParams)
 
+    def test_validate_rejects_str_model_type(self):
+        # UI 曾直接传下拉框字符串导致构建报“不支持的类型”；validate 应提前拦截
+        params = HeadModelParams(model_type="bem")
+        errors = params.validate()
+        assert any("HeadModelType" in e for e in errors)
+
 
 class TestForwardModelParams:
     def test_default_values(self):
@@ -106,6 +112,98 @@ class TestSourceServices:
             assert not np.isnan(out).any()
         with pytest.raises(ValueError):
             SourceVisualization3D.interpolate_to_surface(data, src, tgt, None, method="spline")
+
+
+class TestCJKFont:
+    def test_ensure_cjk_font_idempotent(self):
+        from eeg_workbench.utils.fonts import ensure_cjk_font
+        first = ensure_cjk_font()
+        second = ensure_cjk_font()
+        assert first == second
+        if first is not None:
+            import matplotlib
+            assert first in matplotlib.rcParams["font.sans-serif"]
+
+
+class TestPreviewPlots:
+    """在线预览绘图测试（全离线：合成几何 + 真 sphere/fwd，不下载数据）"""
+
+    def test_supported_types_exclude_unsupportable(self):
+        assert HeadModelType.SPHERICAL in HeadModelService.SUPPORTED_MODEL_TYPES
+        assert HeadModelType.BEM in HeadModelService.SUPPORTED_MODEL_TYPES
+        assert HeadModelType.FEM not in HeadModelService.SUPPORTED_MODEL_TYPES
+        assert HeadModelType.MULTI_LAYER not in HeadModelService.SUPPORTED_MODEL_TYPES
+
+    def _synthetic_bem(self):
+        rng = np.random.default_rng(0)
+        surfs = []
+        for i, r in enumerate([0.06, 0.075, 0.09]):
+            u = rng.normal(size=(120, 3))
+            u /= np.linalg.norm(u, axis=1, keepdims=True)
+            surfs.append({
+                "rr": u * r,
+                "tris": np.array([[a, a + 1, a + 2] for a in range(0, 117, 3)]),
+                "sigma": (1.0, 0.0125, 1.0)[i],
+                "id": (4, 3, 2)[i],
+            })
+        return {"surfs": surfs}
+
+    def test_fig_bem_geometry(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        from eeg_workbench.services.source.preview_plots import fig_bem_geometry
+        fig = fig_bem_geometry(self._synthetic_bem())
+        assert len(fig.axes) == 1
+
+    def test_fig_sphere_geometry_real_model(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        import mne
+        from eeg_workbench.services.source.preview_plots import fig_sphere_geometry
+        sphere = mne.make_sphere_model(r0=(0.0, 0.0, 0.04), head_radius=0.095, verbose=False)
+        fig = fig_sphere_geometry(sphere)
+        assert len(fig.axes) == 1
+
+    def test_fig_dipoles_all_views(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        from eeg_workbench.services.source.preview_plots import (
+            fig_dipoles_2d, DIPOLE_VIEW_PLANES,
+        )
+        dips = [{"pos": np.array([0.01, -0.02, 0.06]),
+                 "ori": np.array([0.3, 0.1, 0.9]),
+                 "amplitude": 20e-9, "gof": 0.95}]
+        assert set(DIPOLE_VIEW_PLANES) == {
+            "lateral", "medial", "rostral", "caudal", "dorsal", "ventral"}
+        for view in DIPOLE_VIEW_PLANES:
+            assert len(fig_dipoles_2d(dips, view=view).axes) == 1
+
+    def test_fig_sensors_and_src_cloud(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        from eeg_workbench.services.source.preview_plots import (
+            fig_sensors_2d, fig_src_cloud,
+        )
+        rng = np.random.default_rng(1)
+        pos = rng.uniform(-0.09, 0.09, (8, 3))
+        fig = fig_sensors_2d(pos, [f"Ch{i}" for i in range(8)])
+        assert len(fig.axes) == 1
+        src = [{"rr": rng.uniform(-0.07, 0.07, (50, 3))}]
+        assert len(fig_src_cloud(src).axes) == 1
+
+    def test_fig_sensitivity_real_fwd(self):
+        import matplotlib
+        matplotlib.use("Agg")
+        import mne
+        from matplotlib.figure import Figure
+        sphere = mne.make_sphere_model(verbose=False)
+        info = mne.create_info(["Cz", "Pz", "Oz", "Fz"], 256.0, "eeg")
+        info.set_montage(mne.channels.make_standard_montage("standard_1020"))
+        src = mne.setup_volume_source_space(sphere=sphere, pos=30.0, verbose=False)
+        fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
+                                        eeg=True, meg=False, verbose=False)
+        fig = ForwardModelService.plot_sensitivity(fwd)
+        assert isinstance(fig, Figure)
 
 
 if __name__ == "__main__":

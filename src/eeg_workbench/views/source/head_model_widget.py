@@ -11,6 +11,11 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.models.source import HeadModelParams, HeadModelType, STANDARD_HEAD_MODELS
+from eeg_workbench.services.source.head_model import HeadModelService
+from eeg_workbench.services.source.preview_plots import (
+    fig_bem_geometry, fig_sphere_geometry, extract_sensor_xy,
+)
+from eeg_workbench.utils.ui import balance_form, embed_figure
 
 
 class HeadModelWidget(QWidget):
@@ -52,10 +57,14 @@ class HeadModelWidget(QWidget):
         type_layout = QFormLayout(type_group)
 
         self._cmb_type = QComboBox()
-        self._cmb_type.addItems([m.value for m in HeadModelType])
+        # 只列出本机可构建的类型（FEM/多层需外部求解器，后端不支持）
+        self._cmb_type.addItems(
+            [m.value for m in HeadModelService.SUPPORTED_MODEL_TYPES]
+        )
         self._cmb_type.setCurrentText("bem")
         self._cmb_type.currentTextChanged.connect(self._on_type_changed)
         type_layout.addRow("类型:", self._cmb_type)
+        balance_form(type_layout)
 
         layout.addWidget(type_group)
 
@@ -113,6 +122,7 @@ class HeadModelWidget(QWidget):
         trans_row.addWidget(self._edit_trans_file)
         trans_row.addWidget(self._btn_browse_trans)
         bem_layout.addRow("变换文件:", trans_row)
+        balance_form(bem_layout)
 
         self._chk_custom_trans.toggled.connect(self._edit_trans_file.setEnabled)
         self._chk_custom_trans.toggled.connect(self._btn_browse_trans.setEnabled)
@@ -149,6 +159,7 @@ class HeadModelWidget(QWidget):
         self._spin_sphere_z.setDecimals(3)
         self._spin_sphere_z.setValue(0.04)
         sphere_layout.addRow("中心 Z:", self._spin_sphere_z)
+        balance_form(sphere_layout)
 
         layout.addWidget(self._sphere_group)
 
@@ -161,12 +172,25 @@ class HeadModelWidget(QWidget):
         exec_layout.addWidget(self._btn_build)
         layout.addLayout(exec_layout)
 
+        # ---- 在线预览 ----
+        preview_group = QGroupBox("在线预览")
+        preview_layout = QVBoxLayout(preview_group)
+        self._lbl_preview_hint = QLabel("构建头模型后，在此显示几何预览。")
+        self._lbl_preview_hint.setStyleSheet("color: #888; font-size: 12px;")
+        self._lbl_preview_hint.setWordWrap(True)
+        preview_layout.addWidget(self._lbl_preview_hint)
+        self._preview_layout = QVBoxLayout()
+        preview_layout.addLayout(self._preview_layout)
+        layout.addWidget(preview_group)
+
         layout.addStretch()
 
+        self._fig_canvas = None
         self._connect_type_signals()
 
     def _connect_signals(self):
         self._vm.dataset_changed.connect(self._on_dataset_changed)
+        self._vm.head_model_ready.connect(self._on_head_model_preview)
 
     def _on_dataset_changed(self, dataset):
         enabled = dataset is not None
@@ -218,7 +242,7 @@ class HeadModelWidget(QWidget):
     @Slot()
     def _on_param_changed(self):
         params = HeadModelParams(
-            model_type=self._cmb_type.currentText(),
+            model_type=HeadModelType(self._cmb_type.currentText()),
             conductivity=(self._spin_scalp.value(), self._spin_skull.value(), self._spin_brain.value()),
             subject=self._edit_subject.text(),
             subjects_dir=self._edit_subjects_dir.text() or None,
@@ -245,3 +269,23 @@ class HeadModelWidget(QWidget):
     @Slot()
     def _run_build(self):
         self._vm.run_head_model()
+
+    @Slot(object)
+    def _on_head_model_preview(self, result):
+        """构建完成后渲染几何预览（失败只提示，不弹错）。"""
+        try:
+            if result.model_type == HeadModelType.BEM:
+                fig = fig_bem_geometry(result.model)
+                hint = "BEM 三层表面几何（MRI 坐标；传感器对齐需 trans 文件）"
+            else:
+                ch_pos, ch_names = None, None
+                if self._vm._dataset is not None:
+                    info = self._vm._dataset.to_mne_raw().info
+                    ch_pos, ch_names = extract_sensor_xy(info)
+                fig = fig_sphere_geometry(result.model, ch_pos, ch_names)
+                hint = "球形头模型截面 + 传感器投影"
+            self._fig_canvas = embed_figure(self._preview_layout, fig)
+            self._lbl_preview_hint.setText(hint)
+        except Exception as e:
+            self._lbl_preview_hint.setText(f"预览生成失败: {e}")
+            self.status_message.emit(f"头模型预览失败: {e}")

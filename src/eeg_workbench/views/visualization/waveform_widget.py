@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import WaveformPlotConfig, PlotType
+from eeg_workbench.utils.ui import balance_form
 
 
 class WaveformWidget(QWidget):
@@ -81,6 +82,7 @@ class WaveformWidget(QWidget):
         self._spin_tmax.setSuffix(" s")
         self._spin_tmax.setSpecialValueText("自动 (到尾)")
         time_layout.addRow("结束时间:", self._spin_tmax)
+        balance_form(time_layout)
 
         layout.addWidget(time_group)
 
@@ -122,6 +124,7 @@ class WaveformWidget(QWidget):
         self._chk_channel_names = QCheckBox("显示通道名")
         self._chk_channel_names.setChecked(True)
         display_layout.addRow("", self._chk_channel_names)
+        balance_form(display_layout)
 
         layout.addWidget(display_group)
 
@@ -132,8 +135,8 @@ class WaveformWidget(QWidget):
         self._lst_events = QListWidget()
         self._lst_events.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._lst_events.setMaximumHeight(100)
-        display_layout.addWidget(QLabel("显示的事件类型:"))
-        display_layout.addWidget(self._lst_events)
+        event_layout.addWidget(QLabel("显示的事件类型:"))
+        event_layout.addWidget(self._lst_events)
 
         layout.addWidget(event_group)
 

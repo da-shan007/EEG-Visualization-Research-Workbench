@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.models.statistics import ANOVAParams, MultipleComparisonCorrection, EffectSize
+from eeg_workbench.utils.ui import balance_form
 
 
 class ANOVAWidget(QWidget):
@@ -48,6 +49,7 @@ class ANOVAWidget(QWidget):
         self._edit_subject.setPlaceholderText("受试者因子名 (重复测量必填)")
         self._edit_subject.setVisible(False)
         design_layout.addRow("受试者因子:", self._edit_subject)
+        balance_form(design_layout)
 
         layout.addWidget(design_group)
 
@@ -68,6 +70,7 @@ class ANOVAWidget(QWidget):
         self._cmb_correction.addItems([m.value for m in MultipleComparisonCorrection])
         self._cmb_correction.setCurrentText("fdr_bh")
         between_layout.addRow("多重校正:", self._cmb_correction)
+        balance_form(between_layout)
 
         layout.addWidget(self._between_group)
 
@@ -80,6 +83,7 @@ class ANOVAWidget(QWidget):
         self._cmb_sphericity.addItems(["none", "greenhouse_geisser", "huynh_feldt"])
         self._cmb_sphericity.setCurrentText("greenhouse_geisser")
         repeated_layout.addRow("球形校正:", self._cmb_sphericity)
+        balance_form(repeated_layout)
 
         layout.addWidget(self._repeated_group)
 
@@ -91,6 +95,7 @@ class ANOVAWidget(QWidget):
         self._cmb_effect_size.addItems([e.value for e in EffectSize])
         self._cmb_effect_size.setCurrentText("eta_squared")
         effect_layout.addRow("效应量类型:", self._cmb_effect_size)
+        balance_form(effect_layout)
 
         layout.addWidget(effect_group)
 

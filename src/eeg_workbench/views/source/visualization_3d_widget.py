@@ -1,5 +1,7 @@
 """3D 可视化面板"""
 from __future__ import annotations
+import base64
+import io
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot
@@ -10,6 +12,11 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
+from eeg_workbench.services.source.preview_plots import (
+    fig_stc_topomap, fig_dipoles_2d, fig_sensors_2d, fig_src_cloud,
+    extract_sensor_xy, DIPOLE_VIEW_PLANES,
+)
+from eeg_workbench.utils.ui import balance_form, embed_figure
 
 
 class Visualization3DWidget(QWidget):
@@ -64,6 +71,7 @@ class Visualization3DWidget(QWidget):
         self._spin_time_idx = QSpinBox()
         self._spin_time_idx.setRange(0, 1000)
         self._spin_time_idx.setValue(0)
+        self._spin_time_idx.valueChanged.connect(self._on_time_idx_changed)
         source_layout.addRow("时间点索引:", self._spin_time_idx)
 
         self._cmb_hemi = QComboBox()
@@ -87,6 +95,7 @@ class Visualization3DWidget(QWidget):
         self._spin_vmax.setRange(-100, 100)
         self._spin_vmax.setDecimals(2)
         source_layout.addRow("最大值:", self._spin_vmax)
+        balance_form(source_layout)
 
         layout.addWidget(self._source_group)
 
@@ -104,6 +113,19 @@ class Visualization3DWidget(QWidget):
 
         layout.addWidget(ctrl_group)
 
+        # ---- 在线预览（matplotlib 内嵌；完整 3D 交互需安装 pyvista） ----
+        preview_group = QGroupBox("在线预览")
+        preview_layout = QVBoxLayout(preview_group)
+        self._lbl_preview_hint = QLabel(
+            "计算逆向解/偶极子拟合后，在此显示 2D 预览（pyvista 未安装，无 Brain 交互窗口）。"
+        )
+        self._lbl_preview_hint.setStyleSheet("color: #888; font-size: 12px;")
+        self._lbl_preview_hint.setWordWrap(True)
+        preview_layout.addWidget(self._lbl_preview_hint)
+        self._preview_layout = QVBoxLayout()
+        preview_layout.addLayout(self._preview_layout)
+        layout.addWidget(preview_group)
+
         # ---- 导出 ----
         export_group = QGroupBox("导出")
         export_layout = QHBoxLayout(export_group)
@@ -118,11 +140,18 @@ class Visualization3DWidget(QWidget):
 
         self._btn_export_stl = QPushButton("导出 STL")
         self._btn_export_stl.clicked.connect(self._export_stl)
+        self._btn_export_stl.setEnabled(False)
+        self._btn_export_stl.setToolTip("需要 pyvista Brain 网格（当前未安装/未绘制），暂不可用")
         export_layout.addWidget(self._btn_export_stl)
 
         layout.addWidget(export_group)
 
         layout.addStretch()
+
+        self._vis_type = "source"
+        self._dipole_view = "dorsal"
+        self._fig_canvas = None
+        self._current_fig = None
 
     def _connect_signals(self):
         self._vm.dataset_changed.connect(self._on_dataset_changed)
@@ -140,46 +169,151 @@ class Visualization3DWidget(QWidget):
 
     def _on_dipole_ready(self, result):
         self._btn_dipole.setEnabled(True)
+        if self._vis_type == "dipole":
+            self._render_current()
 
     def _set_vis_type(self, vis_type: str):
         self._vis_type = vis_type
+        for btn, name in [(self._btn_source, "source"), (self._btn_dipole, "dipole"),
+                          (self._btn_connectivity, "connectivity"), (self._btn_montage, "montage")]:
+            btn.setChecked(name == vis_type)
         if vis_type == "source":
             self._source_group.setEnabled(True)
-            if self._vm._inverse_result and self._vm._inverse_result.stc:
-                self._vm.plot_source_estimate()
+            self._render_current()
         elif vis_type == "dipole":
-            if self._vm._dipole_result:
-                self._vm.plot_dipoles_3d()
+            self._render_current()
         elif vis_type == "connectivity":
             self.status_message.emit("源空间连通性：请先在特征提取模块计算连通性，再回到此处查看 3D 叠加")
+            self._render_current()
         elif vis_type == "montage":
-            self.status_message.emit("电极蒙版：请在数据管理中确认 montage 已设置，传感器位置将随源估计一并显示")
+            self._render_current()
 
     def _set_view(self, view: str):
-        if hasattr(self._vm, '_viz') and self._vm._viz:
-            self._vm._viz._brain.show_view(view)
+        """视图按钮：切换偶极子 2D 投影平面（标题如实标注平面，非 Brain 视角）。"""
+        self._dipole_view = view
+        plane = DIPOLE_VIEW_PLANES.get(view, DIPOLE_VIEW_PLANES["dorsal"])[2]
+        self.status_message.emit(f"偶极子投影平面: {plane}")
+        if self._vis_type == "dipole":
+            self._render_current()
+
+    def _on_time_idx_changed(self):
+        if self._vis_type == "source":
+            self._render_current()
+
+    def _render_current(self):
+        """按当前可视化类型渲染内嵌预览；失败只提示不抛错。"""
+        try:
+            if self._vis_type == "source":
+                self._render_source()
+            elif self._vis_type == "dipole":
+                self._render_dipoles()
+            elif self._vis_type == "montage":
+                self._render_montage()
+            elif self._vis_type == "connectivity":
+                self._render_src_cloud()
+        except Exception as e:
+            self._lbl_preview_hint.setText(f"预览生成失败: {e}")
+            self.status_message.emit(f"3D 预览失败: {e}")
+        finally:
+            has_brain = bool(getattr(getattr(self._vm, "_viz", None), "_brain", None))
+            self._btn_export_stl.setEnabled(has_brain)
+
+    def _render_source(self):
+        inv = self._vm._inverse_result
+        if not inv or not inv.stc:
+            self._lbl_preview_hint.setText("请先计算逆向解。")
+            return
+        idx = min(self._spin_time_idx.value(), len(inv.stc.times) - 1)
+        fig = fig_stc_topomap(inv.stc, idx)
+        self._show_fig(fig, f"源估计地形 @ {float(inv.stc.times[idx]) * 1000:.0f} ms")
+
+    def _render_dipoles(self):
+        res = self._vm._dipole_result
+        if not res:
+            self._lbl_preview_hint.setText("请先进行偶极子拟合。")
+            return
+        fig = fig_dipoles_2d(res.dipoles, view=self._dipole_view)
+        self._show_fig(fig, f"偶极子投影（{len(res.dipoles)} 个）")
+
+    def _render_montage(self):
+        if self._vm._dataset is None:
+            self._lbl_preview_hint.setText("请先加载数据集。")
+            return
+        info = self._vm._dataset.to_mne_raw().info
+        ch_pos, ch_names = extract_sensor_xy(info)
+        if len(ch_names) == 0:
+            self._lbl_preview_hint.setText("数据集中无带位置的 EEG 通道。")
+            return
+        fig = fig_sensors_2d(ch_pos, ch_names)
+        self._show_fig(fig, "传感器分布")
+
+    def _render_src_cloud(self):
+        fwd = self._vm._forward_result
+        if not fwd:
+            self._lbl_preview_hint.setText("请先计算前向模型（连通性矩阵需在特征提取模块计算）。")
+            return
+        fig = fig_src_cloud(fwd.src)
+        self._show_fig(fig, "源点分布")
+
+    def _show_fig(self, fig, hint: str):
+        self._current_fig = fig
+        self._fig_canvas = embed_figure(self._preview_layout, fig)
+        self._lbl_preview_hint.setText(hint)
 
     @Slot()
     def _screenshot(self):
         from PySide6.QtWidgets import QFileDialog
+        if self._current_fig is None:
+            self.status_message.emit("暂无预览图可保存：请先切换可视化类型生成预览")
+            return
         path, _ = QFileDialog.getSaveFileName(self, "保存截图", "", "PNG 图片 (*.png)")
         if path:
-            # 这里需要访问 brain 对象
-            self.status_message.emit(f"截图已保存: {path}")
+            try:
+                self._current_fig.savefig(path, dpi=150)
+                self.status_message.emit(f"截图已保存: {path}")
+            except Exception as e:
+                self.status_message.emit(f"截图保存失败: {e}")
 
     @Slot()
     def _export_html(self):
         from PySide6.QtWidgets import QFileDialog
+        if self._current_fig is None:
+            self.status_message.emit("暂无预览图可导出：请先切换可视化类型生成预览")
+            return
         path, _ = QFileDialog.getSaveFileName(self, "导出 HTML", "", "HTML 文件 (*.html)")
-        if path:
+        if not path:
+            return
+        try:
+            buf = io.BytesIO()
+            self._current_fig.savefig(buf, format="png", dpi=150)
+            b64 = base64.b64encode(buf.getvalue()).decode("ascii")
+            html = (
+                "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                f"<title>源定位预览</title></head><body>"
+                f"<h3>{self._lbl_preview_hint.text()}</h3>"
+                f"<img src='data:image/png;base64,{b64}'/></body></html>"
+            )
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(html)
             self.status_message.emit(f"HTML 已导出: {path}")
+        except Exception as e:
+            self.status_message.emit(f"HTML 导出失败: {e}")
 
     @Slot()
     def _export_stl(self):
+        viz = getattr(self._vm, "_viz", None)
+        brain = getattr(viz, "_brain", None) if viz else None
+        if brain is None:
+            self.status_message.emit("STL 导出需要 pyvista Brain 网格（当前未安装/未绘制）")
+            return
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出 STL", "", "STL 文件 (*.stl)")
         if path:
-            self.status_message.emit(f"STL 已导出: {path}")
+            try:
+                brain.export_stl(path)
+                self.status_message.emit(f"STL 已导出: {path}")
+            except Exception as e:
+                self.status_message.emit(f"STL 导出失败: {e}")
 
     def _sync_params(self):
         # 同步可视化参数

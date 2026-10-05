@@ -190,6 +190,25 @@ eeg_report_*.html
 eeg_research_report.txt
 outputs/
 
+# Third-party / vendored
+archive/legacy_web_prototype/node_modules/
+
+# Tool caches
+.cortexkit/
+
+# Packed binaries
+启动EEGWorkbench.exe
+*.exe
+
+# Ad-hoc debug / probe scripts at repo root
+debug_channels.py
+inspect_edf.py
+ui_ratio_probe.py
+verify_balance.py
+verify_erp_balance.py
+physionet_pipeline.py
+launcher.py
+
 # IDE
 .vscode/
 .idea/

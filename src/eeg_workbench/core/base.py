@@ -96,17 +96,26 @@ class Command(QObject):
 
     @Slot()
     def execute(self) -> None:
-        self.started.emit()
+        try:
+            self.started.emit()
+        except RuntimeError:
+            return  # 信号宿主（窗口/VM）已销毁，放弃执行
         try:
             # 支持生成器风格进度汇报
             result = self._func(*self._args, **self._kwargs)
             if self._cancelled:
                 return
             self._result = result
-            self.finished.emit(result)
+            try:
+                self.finished.emit(result)
+            except RuntimeError:
+                pass  # 接收方已随窗口销毁，静默丢弃
         except Exception as e:
             self._error = str(e)
-            self.failed.emit(self._error)
+            try:
+                self.failed.emit(self._error)
+            except RuntimeError:
+                pass  # 接收方已销毁，静默丢弃
 
     @property
     def result(self) -> Any:

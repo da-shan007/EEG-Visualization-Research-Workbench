@@ -182,9 +182,13 @@ class ForwardModelService:
 
     @staticmethod
     def plot_sensitivity(fwd, **kwargs):
-        """绘制敏感度图"""
-        import mne
-        return mne.viz.plot_sensitivity_map(fwd, ch_type="eeg", **kwargs)
+        """敏感度预览 Figure（可嵌入 Qt 画布）。
+
+        注：mne 1.13 没有 mne.viz.plot_sensitivity_map，此处用
+        mne.sensitivity_map 真实计算 + 源位置散点投影，保证体/面源通用。
+        """
+        from eeg_workbench.services.source.preview_plots import fig_sensitivity
+        return fig_sensitivity(fwd, **kwargs)
 
 
 def compute_forward_solution(

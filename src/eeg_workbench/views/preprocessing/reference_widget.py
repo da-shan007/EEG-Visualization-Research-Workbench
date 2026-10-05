@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.models.preprocessing import ReferenceParams, ReferenceType, REFERENCE_PRESETS
+from eeg_workbench.utils.ui import balance_form
 
 
 class ReferenceWidget(QWidget):
@@ -58,6 +59,7 @@ class ReferenceWidget(QWidget):
         self._cmb_ref_type.setCurrentText("average")
         self._cmb_ref_type.currentTextChanged.connect(self._on_ref_type_changed)
         type_layout.addRow("类型:", self._cmb_ref_type)
+        balance_form(type_layout)
 
         layout.addWidget(type_group)
 

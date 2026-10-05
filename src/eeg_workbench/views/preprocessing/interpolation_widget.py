@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.models.preprocessing import BadChannelInterpolationParams, InterpolationMethod
+from eeg_workbench.utils.ui import balance_form
 
 
 class InterpolationWidget(QWidget):
@@ -93,6 +94,7 @@ class InterpolationWidget(QWidget):
         self._chk_reset_bads.setChecked(True)
         self._chk_reset_bads.toggled.connect(self._on_param_changed)
         interp_layout.addRow("", self._chk_reset_bads)
+        balance_form(interp_layout)
 
         layout.addWidget(interp_group)
 

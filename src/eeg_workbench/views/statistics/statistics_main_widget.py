@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QSplitter, QMenu
 )
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.views.statistics.ttest_widget import TTestWidget
 from eeg_workbench.views.statistics.anova_widget import ANOVAWidget
@@ -69,13 +70,13 @@ class StatisticsMainWidget(QWidget):
         self._corr_widget2 = CorrectionWidget(self._vm)
         self._effect_widget = EffectSizeWidget(self._vm)
 
-        self._tabs.addTab(self._ttest_widget, "T 检验")
-        self._tabs.addTab(self._anova_widget, "ANOVA")
-        self._tabs.addTab(self._nonparam_widget, "非参数")
-        self._tabs.addTab(self._perm_widget, "置换检验")
-        self._tabs.addTab(self._corr_widget, "相关性")
-        self._tabs.addTab(self._corr_widget2, "多重校正")
-        self._tabs.addTab(self._effect_widget, "效应量")
+        self._tabs.addTab(wrap_scroll(self._ttest_widget), "T 检验")
+        self._tabs.addTab(wrap_scroll(self._anova_widget), "ANOVA")
+        self._tabs.addTab(wrap_scroll(self._nonparam_widget), "非参数")
+        self._tabs.addTab(wrap_scroll(self._perm_widget), "置换检验")
+        self._tabs.addTab(wrap_scroll(self._corr_widget), "相关性")
+        self._tabs.addTab(wrap_scroll(self._corr_widget2), "多重校正")
+        self._tabs.addTab(wrap_scroll(self._effect_widget), "效应量")
 
         layout.addWidget(self._tabs, 1)
 

@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import SpectralPlotConfig
+from eeg_workbench.utils.ui import balance_form
 
 
 class SpectralWidget(QWidget):
@@ -39,6 +40,7 @@ class SpectralWidget(QWidget):
         self._cmb_method.addItems(["welch", "multitaper", "periodogram", "fft"])
         self._cmb_method.setCurrentText("welch")
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -91,6 +93,7 @@ class SpectralWidget(QWidget):
         self._chk_average = QCheckBox("跨通道平均")
         self._chk_average.setChecked(True)
         param_layout.addRow("", self._chk_average)
+        balance_form(param_layout)
 
         layout.addWidget(param_group)
 
@@ -100,14 +103,15 @@ class SpectralWidget(QWidget):
 
         self._cmb_xscale = QComboBox()
         self._cmb_xscale.addItems(["linear", "log"])
-        param_layout.addRow("X轴刻度:", self._cmb_xscale)
+        display_layout.addRow("X轴刻度:", self._cmb_xscale)
 
         self._chk_show_topomap = QCheckBox("显示地形图插图")
-        param_layout.addRow("", self._chk_show_topomap)
+        display_layout.addRow("", self._chk_show_topomap)
 
         self._edit_topo_freqs = QLineEdit()
         self._edit_topo_freqs.setPlaceholderText("频率列表，逗号分隔 (如: 4,8,12,30)")
-        param_layout.addRow("地形图频率:", self._edit_topo_freqs)
+        display_layout.addRow("地形图频率:", self._edit_topo_freqs)
+        balance_form(display_layout)
 
         layout.addWidget(display_group)
 

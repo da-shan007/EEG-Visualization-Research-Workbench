@@ -9,12 +9,14 @@ from PySide6.QtWidgets import (
     QListWidgetItem
 )
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.views.features import (
     BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget, NonlinearWidget
 )
 from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.features import FeatureExtractionResult
+from eeg_workbench.utils.ui import balance_form
 
 
 class FeaturesMainWidget(QWidget):
@@ -70,10 +72,10 @@ class FeaturesMainWidget(QWidget):
         self._conn_widget = ConnectivityWidget(self._vm)
         self._nonlinear_widget = NonlinearWidget(self._vm)
 
-        self._tabs.addTab(self._band_power_widget, "频段功率")
-        self._tabs.addTab(self._tf_widget, "时频分析")
-        self._tabs.addTab(self._conn_widget, "连通性分析")
-        self._tabs.addTab(self._nonlinear_widget, "非线性分析")
+        self._tabs.addTab(wrap_scroll(self._band_power_widget), "频段功率")
+        self._tabs.addTab(wrap_scroll(self._tf_widget), "时频分析")
+        self._tabs.addTab(wrap_scroll(self._conn_widget), "连通性分析")
+        self._tabs.addTab(wrap_scroll(self._nonlinear_widget), "非线性分析")
 
         layout.addWidget(self._tabs, 1)
 
@@ -219,6 +221,7 @@ class FeaturesMainWidget(QWidget):
         buttons.accepted.connect(dlg.accept)
         buttons.rejected.connect(dlg.reject)
         layout.addRow(buttons)
+        balance_form(layout)
 
         if dlg.exec() == QDialog.DialogCode.Accepted:
             event_descs = [e.strip() for e in events_edit.text().split(",") if e.strip()]

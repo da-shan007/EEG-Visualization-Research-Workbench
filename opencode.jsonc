@@ -70,6 +70,7 @@
   // 技能开关：V2 没有 skills 的 disabled 字段，
   // 用 permission(action=skill, effect=deny) 把技能从模型可见列表中隐藏。
   // 同 ID 的规则按顺序生效，最后匹配的规则胜出。
+  // 策略：显式 deny 无关技能；其余按需加载（skill 工具），不占用 token。
   // ============================================================
   "permissions": [
     // --- 数据库 / ORM（本项目不用任何数据库）---
@@ -89,6 +90,13 @@
     { "action": "skill", "resource": "deploy-model", "effect": "deny" },
     { "action": "skill", "resource": "finetuning", "effect": "deny" },
     { "action": "skill", "resource": "microsoft-foundry", "effect": "deny" },
-    { "action": "skill", "resource": "preset", "effect": "deny" }
+    { "action": "skill", "resource": "preset", "effect": "deny" },
+
+    // --- 其它无关技能 ---
+    { "action": "skill", "resource": "git-guardrails-claude-code", "effect": "deny" },
+    { "action": "skill", "resource": "oh-my-opencode-slim", "effect": "deny" },
+    { "action": "skill", "resource": "report", "effect": "deny" },
+    { "action": "skill", "resource": "skill-creator", "effect": "deny" },
+    { "action": "skill", "resource": "worktrees", "effect": "deny" }
   ]
 }

@@ -14,6 +14,7 @@ from PySide6.QtGui import QAction
 
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.models.metadata import SubjectInfo, ExperimentCondition, Sex, GroupType, Handedness
+from eeg_workbench.utils.ui import balance_form
 
 
 class ConditionDialog(QDialog):
@@ -91,6 +92,7 @@ class ConditionDialog(QDialog):
         self._cmb_trigger = QComboBox()
         self._cmb_trigger.addItems(["stimulus", "response", "cue", "custom"])
         form.addRow("触发类型:", self._cmb_trigger)
+        balance_form(form)
 
         layout.addLayout(form)
 
@@ -220,6 +222,7 @@ class MetadataEditorWidget(QWidget):
         self._edit_task.setPlaceholderText("任务名称")
         self._edit_task.editingFinished.connect(self._on_subject_changed)
         subj_layout.addRow("任务名称:", self._edit_task)
+        balance_form(subj_layout)
 
         self._content_layout.addWidget(self._grp_subject)
 
@@ -259,6 +262,7 @@ class MetadataEditorWidget(QWidget):
         self._spin_powerline.setSuffix(" Hz")
         self._spin_powerline.valueChanged.connect(self._on_acq_changed)
         acq_layout.addRow("工频:", self._spin_powerline)
+        balance_form(acq_layout)
 
         self._content_layout.addWidget(self._grp_acq)
 
@@ -282,6 +286,7 @@ class MetadataEditorWidget(QWidget):
         self._lbl_montage_status.setStyleSheet("color: #666;")
         btn_row_montage.addWidget(self._lbl_montage_status)
         montage_layout.addRow("", btn_row_montage)
+        balance_form(montage_layout)
 
         self._content_layout.addWidget(self._grp_montage)
 

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
 from eeg_workbench.models.erp import EpochParams, ERPComponent, DEFAULT_ERP_PEAK_WINDOWS, DEFAULT_ERP_POLARITY
+from eeg_workbench.utils.ui import balance_form
 
 
 class ERPConditionWidget(QWidget):
@@ -104,6 +105,7 @@ class ERPConditionWidget(QWidget):
         self._cmb_correction = QComboBox()
         self._cmb_correction.addItems(["none", "fdr", "bonferroni", "cluster"])
         stats_layout.addRow("多重比较校正:", self._cmb_correction)
+        balance_form(stats_layout)
 
         layout.addWidget(stats_group)
 
@@ -304,6 +306,7 @@ class ConditionDialog(QDialog):
         self._spin_resample.setDecimals(1)
         self._spin_resample.setSpecialValueText("不重采样")
         form.addRow("重采样频率:", self._spin_resample)
+        balance_form(form)
 
         layout.addLayout(form)
 
@@ -364,6 +367,7 @@ class ContrastDialog(QDialog):
         self._cmb_b = QComboBox()
         self._cmb_b.addItems(self._conditions)
         form.addRow("条件 B (减数):", self._cmb_b)
+        balance_form(form)
 
         layout.addLayout(form)
 

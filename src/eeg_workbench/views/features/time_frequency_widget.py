@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.models.features import TimeFrequencyParams, TimeFrequencyMethod
+from eeg_workbench.utils.ui import balance_form
 
 
 class TimeFrequencyWidget(QWidget):
@@ -39,6 +40,7 @@ class TimeFrequencyWidget(QWidget):
         self._cmb_method.setCurrentText("morlet")
         self._cmb_method.currentTextChanged.connect(self._on_method_changed)
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -69,6 +71,7 @@ class TimeFrequencyWidget(QWidget):
         self._edit_custom_freqs = QLineEdit()
         self._edit_custom_freqs.setPlaceholderText("可选: 逗号分隔的频率值，如 4,8,12,30")
         freq_layout.addRow("自定义频率:", self._edit_custom_freqs)
+        balance_form(freq_layout)
 
         layout.addWidget(freq_group)
 
@@ -81,6 +84,7 @@ class TimeFrequencyWidget(QWidget):
         self._spin_n_cycles.setDecimals(1)
         self._spin_n_cycles.setValue(7.0)
         morlet_layout.addRow("周期数:", self._spin_n_cycles)
+        balance_form(morlet_layout)
 
         layout.addWidget(self._morlet_group)
 
@@ -104,6 +108,7 @@ class TimeFrequencyWidget(QWidget):
         self._cmb_window = QComboBox()
         self._cmb_window.addItems(["hann", "hamming", "blackman"])
         stft_layout.addRow("窗函数:", self._cmb_window)
+        balance_form(stft_layout)
 
         layout.addWidget(self._stft_group)
 
@@ -122,6 +127,7 @@ class TimeFrequencyWidget(QWidget):
         self._spin_n_tapers.setRange(1, 20)
         self._spin_n_tapers.setValue(7)
         mt_layout.addRow("锥数:", self._spin_n_tapers)
+        balance_form(mt_layout)
 
         layout.addWidget(self._mt_group)
 
@@ -152,6 +158,7 @@ class TimeFrequencyWidget(QWidget):
         self._cmb_base_mode.addItems(["mean", "ratio", "logratio", "zscore"])
         self._cmb_base_mode.setCurrentText("logratio")
         baseline_layout.addRow("校正模式:", self._cmb_base_mode)
+        balance_form(baseline_layout)
 
         layout.addWidget(baseline_group)
 
@@ -168,6 +175,7 @@ class TimeFrequencyWidget(QWidget):
         self._spin_decim.setRange(1, 20)
         self._spin_decim.setValue(1)
         output_layout.addRow("时间降采样:", self._spin_decim)
+        balance_form(output_layout)
 
         layout.addWidget(output_group)
 

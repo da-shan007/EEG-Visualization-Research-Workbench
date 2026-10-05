@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QSplitter
 )
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.views.source.head_model_widget import HeadModelWidget
 from eeg_workbench.views.source.forward_widget import ForwardModelWidget
@@ -66,11 +67,11 @@ class SourceMainWidget(QWidget):
         self._dipole_widget = DipoleFitWidget(self._vm)
         self._viz_widget = Visualization3DWidget(self._vm)
 
-        self._tabs.addTab(self._head_widget, "头模型")
-        self._tabs.addTab(self._forward_widget, "前向模型")
-        self._tabs.addTab(self._inverse_widget, "逆向解")
-        self._tabs.addTab(self._dipole_widget, "偶极子拟合")
-        self._tabs.addTab(self._viz_widget, "3D 可视化")
+        self._tabs.addTab(wrap_scroll(self._head_widget), "头模型")
+        self._tabs.addTab(wrap_scroll(self._forward_widget), "前向模型")
+        self._tabs.addTab(wrap_scroll(self._inverse_widget), "逆向解")
+        self._tabs.addTab(wrap_scroll(self._dipole_widget), "偶极子拟合")
+        self._tabs.addTab(wrap_scroll(self._viz_widget), "3D 可视化")
 
         layout.addWidget(self._tabs, 1)
 

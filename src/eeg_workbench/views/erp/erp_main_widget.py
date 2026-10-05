@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem
 )
 
+from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
 from eeg_workbench.views.erp.erp_condition_widget import ERPConditionWidget
 from eeg_workbench.views.erp.erp_peak_widget import ERPPeakWidget
@@ -66,9 +67,9 @@ class ERPMainWidget(QWidget):
         self._peak_widget = ERPPeakWidget(self._vm)
         self._erds_widget = ERDSWidget(self._vm)
 
-        self._tabs.addTab(self._cond_widget, "条件设置")
-        self._tabs.addTab(self._peak_widget, "峰值检测")
-        self._tabs.addTab(self._erds_widget, "ERD/ERS")
+        self._tabs.addTab(wrap_scroll(self._cond_widget), "条件设置")
+        self._tabs.addTab(wrap_scroll(self._peak_widget), "峰值检测")
+        self._tabs.addTab(wrap_scroll(self._erds_widget), "ERD/ERS")
 
         layout.addWidget(self._tabs, 1)
 

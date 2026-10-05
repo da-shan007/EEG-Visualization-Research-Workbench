@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
 from eeg_workbench.models.visualization import SourcePlotConfig
+from eeg_workbench.utils.ui import balance_form
 
 
 class SourceVisualizationWidget(QWidget):
@@ -89,6 +90,7 @@ class SourceVisualizationWidget(QWidget):
         self._spin_vmax.setRange(-100, 100)
         self._spin_vmax.setDecimals(2)
         source_layout.addRow("最大值:", self._spin_vmax)
+        balance_form(source_layout)
 
         layout.addWidget(self._source_group)
 

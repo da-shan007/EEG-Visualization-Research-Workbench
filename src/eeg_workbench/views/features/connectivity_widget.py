@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.models.features import ConnectivityParams, ConnectivityMethod
+from eeg_workbench.utils.ui import balance_form
 
 
 class ConnectivityWidget(QWidget):
@@ -39,6 +40,7 @@ class ConnectivityWidget(QWidget):
         self._cmb_method.setCurrentText("coherence")
         self._cmb_method.currentTextChanged.connect(self._on_method_changed)
         method_layout.addRow("方法:", self._cmb_method)
+        balance_form(method_layout)
 
         layout.addWidget(method_group)
 
@@ -65,6 +67,7 @@ class ConnectivityWidget(QWidget):
         self._spin_n_freqs.setRange(5, 100)
         self._spin_n_freqs.setValue(20)
         freq_layout.addRow("频率点数:", self._spin_n_freqs)
+        balance_form(freq_layout)
 
         layout.addWidget(freq_group)
 
@@ -83,6 +86,7 @@ class ConnectivityWidget(QWidget):
         self._spin_gca_nfft.setValue(256)
         self._spin_gca_nfft.setSingleStep(64)
         gca_layout.addRow("FFT 点数:", self._spin_gca_nfft)
+        balance_form(gca_layout)
 
         layout.addWidget(self._gca_group)
 
@@ -96,6 +100,7 @@ class ConnectivityWidget(QWidget):
         self._spin_n_cycles.setDecimals(1)
         self._spin_n_cycles.setValue(7.0)
         phase_layout.addRow("Morlet 周期数:", self._spin_n_cycles)
+        balance_form(phase_layout)
 
         layout.addWidget(self._phase_group)
 
@@ -120,6 +125,7 @@ class ConnectivityWidget(QWidget):
         self._spin_alpha.setSingleStep(0.01)
         self._spin_alpha.setValue(0.05)
         stat_layout.addRow("显著性水平:", self._spin_alpha)
+        balance_form(stat_layout)
 
         layout.addWidget(stat_group)
 

@@ -16,6 +16,7 @@ from PySide6.QtGui import QAction, QColor, QBrush
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.models.dataset import Event
 from eeg_workbench.services.events import import_vmrk, import_tsv, export_vmrk, export_tsv
+from eeg_workbench.utils.ui import balance_form
 
 
 class EventTableModel(QAbstractTableModel):
@@ -485,6 +486,7 @@ class EventEditDialog(QDialog):
         self._spin_confidence.setSingleStep(0.1)
         self._spin_confidence.setValue(1.0)
         form.addRow("置信度:", self._spin_confidence)
+        balance_form(form)
 
         layout.addLayout(form)
 
