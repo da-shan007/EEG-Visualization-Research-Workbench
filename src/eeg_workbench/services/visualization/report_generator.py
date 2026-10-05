@@ -18,6 +18,17 @@ from eeg_workbench.services.visualization.plotting import PlottingService
 from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPayload
 
 
+def _default_report_path(ext: str) -> str:
+    """默认输出位置: <cwd>/outputs/reports/eeg_report_<时间戳>.<ext>
+
+    原实现用裸相对路径，报告会直接落在进程 CWD（开发/测试时即项目根目录），
+    导致根目录堆积几十份 PDF/HTML。现在统一归档到 outputs/reports/。
+    """
+    out_dir = Path.cwd() / "outputs" / "reports"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return str(out_dir / f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}")
+
+
 @dataclass
 class ReportSection:
     """报告章节"""
@@ -89,7 +100,7 @@ class ReportGenerator:
             # 回退到 matplotlib PDF
             return self._generate_pdf_fallback(config)
 
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        output_path = config.output_path or _default_report_path("pdf")
         
         doc = SimpleDocTemplate(
             output_path,
@@ -185,7 +196,7 @@ class ReportGenerator:
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
 
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        output_path = config.output_path or _default_report_path("pdf")
         
         with PdfPages(output_path) as pdf:
             # 标题页
@@ -228,7 +239,7 @@ class ReportGenerator:
         **kwargs
     ):
         """生成 HTML 报告 (交互式)"""
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        output_path = config.output_path or _default_report_path("html")
 
         html_template = self._get_html_template()
         
@@ -267,7 +278,7 @@ class ReportGenerator:
             custom_css=config.custom_css
         )
 
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.html"
+        output_path = config.output_path or _default_report_path("html")
         Path(output_path).write_text(html_content, encoding='utf-8')
 
         file_size = Path(output_path).stat().st_size
@@ -393,7 +404,7 @@ class ReportGenerator:
         except ImportError:
             raise RuntimeError("DOCX 报告需要 python-docx: pip install python-docx")
         start_time = time.perf_counter()
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.docx"
+        output_path = config.output_path or _default_report_path("docx")
 
         doc = Document()
         doc.add_heading(config.title, level=0)
@@ -448,7 +459,7 @@ class ReportGenerator:
         except ImportError:
             raise RuntimeError("PPTX 报告需要 python-pptx: pip install python-pptx")
         start_time = time.perf_counter()
-        output_path = config.output_path or f"eeg_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pptx"
+        output_path = config.output_path or _default_report_path("pptx")
 
         prs = Presentation()
         title_slide = prs.slides.add_slide(prs.slide_layouts[0])

@@ -1,6 +1,7 @@
 """主可视化面板：整合波形、频谱、时频、连通性、统计、源定位、报告"""
 from __future__ import annotations
 from typing import Optional
+from pathlib import Path
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -329,10 +330,15 @@ class VisualizationMainWidget(QWidget):
 
         fmt = ExportFormat(format_str.lower())
 
-        # 输出路径
+        # 输出路径（默认落在 outputs/reports/，避免堆在项目根目录）
         ext = fmt.value
+        default_dir = Path.cwd() / "outputs" / "reports"
+        try:
+            default_dir.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            pass  # 目录不可写时退回对话框的当前目录
         path, _ = QFileDialog.getSaveFileName(
-            self, "保存报告", f"eeg_report.{ext}",
+            self, "保存报告", str(default_dir / f"eeg_report.{ext}"),
             f"{fmt.value.upper()} (*.{ext});;所有文件 (*)"
         )
         if not path:
