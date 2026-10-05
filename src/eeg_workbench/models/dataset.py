@@ -4,10 +4,13 @@
 """
 from __future__ import annotations
 from dataclasses import dataclass, field, replace
-from typing import Optional, Literal, Any
+from typing import Optional, Literal, Any, TYPE_CHECKING
 import numpy as np
 from uuid import uuid4
 from enum import Enum
+
+if TYPE_CHECKING:
+    from eeg_workbench.models.metadata import DatasetMetadata
 
 
 class ChannelType(Enum):

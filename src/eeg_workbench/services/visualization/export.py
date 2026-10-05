@@ -105,7 +105,7 @@ class ExportService:
 </body>
 </html>
         """
-        Path(output_path).write_text(html_str, encoding='utf-8')
+        Path(output_path).write_text(html, encoding='utf-8')
 
     # ---- 数据导出 ----
     def export_data(

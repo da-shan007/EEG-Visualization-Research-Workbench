@@ -99,7 +99,7 @@ class DipoleFitService:
         ]
         
         result = minimize(objective, x0, method="Nelder-Mead", bounds=bounds, options={"maxiter": 1000})
-        return DipoleFitService._extract_dipoles_from_result(result, raw.times)
+        return DipoleFitService._extract_dipoles_from_result(result, raw.times, raw)
 
     @staticmethod
     def _fit_differential_evolution(raw, params: DipoleFitParams, initial_pos, verbose: bool):
@@ -120,7 +120,7 @@ class DipoleFitService:
         ]
         
         result = differential_evolution(objective, bounds, maxiter=100, popsize=15, atol=1e-6, seed=42)
-        return DipoleFitService._extract_dipoles_from_result(result, raw.times)
+        return DipoleFitService._extract_dipoles_from_result(result, raw.times, raw)
 
     @staticmethod
     def _dipole_field(pos: np.ndarray, ori: np.ndarray, amp: float, info) -> np.ndarray:
@@ -138,13 +138,19 @@ class DipoleFitService:
         return dipoles
 
     @staticmethod
-    def _extract_dipoles_from_result(result, times) -> list[dict]:
+    def _extract_dipoles_from_result(result, times, raw=None) -> list[dict]:
         x = result.x
+        if raw is not None:
+            # 残差相对信号方差 -> goodness-of-fit (0~1，越接近 1 越好)
+            var = float(np.var(raw.get_data()))
+            gof = float(1.0 - result.fun / var) if var > 0 else 0.0
+        else:
+            gof = 0.0
         return [{
             "pos": x[:3],
             "ori": x[3:6] / (np.linalg.norm(x[3:6]) + 1e-12),
             "amplitude": x[6],
-            "gof": 1 - result.fun / np.var(raw.get_data()) if 'raw' in dir() else 0,
+            "gof": gof,
             "time": times[len(times)//2],
             "success": result.success,
             "message": result.message

@@ -2,11 +2,15 @@
 from __future__ import annotations
 from enum import Enum, auto
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, TypeVar, Generic
+from typing import Any, Callable, Dict, List, TypeVar, Generic, TYPE_CHECKING
 from collections import defaultdict
 from threading import Lock
 import uuid
 from datetime import datetime
+
+if TYPE_CHECKING:
+    # 仅用于类型注解，避免 core <-> models 循环导入
+    from eeg_workbench.models.dataset import Event
 
 
 class EventType(Enum):

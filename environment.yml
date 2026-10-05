@@ -3,21 +3,39 @@ channels:
   - conda-forge
   - defaults
 dependencies:
+  # 实测环境 2026-10-05；Python 下限 3.12 (numpy/scipy 硬性要求)
   - python=3.14
-  - pyside6=6.11.2
-  - mne=1.13.2
-  - nibabel=5.4.2
-  - numpy=2.5.3
-  - scipy=1.18.1
-  - pandas=3.0.5
-  - pyedflib=0.1.42
-  - pyyaml=6.0.2
-  - pip=24.3.1
+  - pip
   - pip:
-    - python-dotenv==1.1.0
-    - openpyxl==3.1.5
-    - xlrd==2.0.1
-    - mne-bids==0.18.0
-    - pyqtgraph==0.13.7
-    - pingouin==0.7.0
-    - statsmodels==0.15.0
+      # GUI
+      - PySide6==6.11.2
+      # 信号处理核心
+      - mne==1.13.2
+      - nibabel==5.4.2
+      - numpy==2.5.3
+      - scipy==1.18.1
+      - pandas==3.0.5
+      - matplotlib==3.11.2
+      - scikit-learn==1.9.1
+      # 文件格式
+      - pyedflib==0.1.42
+      - openpyxl==3.1.5
+      - xlrd==2.0.2
+      # 统计
+      - pingouin==0.7.0
+      - statsmodels==0.15.0
+      # 报告 + 配置
+      - Jinja2==3.1.6
+      - pillow==12.3.0
+      - pyyaml==6.0.3
+      - python-dotenv==1.2.4
+      # 可选
+      - mne-bids==0.20.0
+      - pyqtgraph==0.14.0
+      # 开发工具
+      - pytest==9.1.1
+      - pytest-qt==4.5.0
+      - pytest-cov==7.1.0
+      - black==26.10.0
+      - ruff==0.16.10
+      - mypy==2.4.0

@@ -67,11 +67,13 @@ class ConnectivityService:
 
         # 根据方法计算连通性
         if params.method in (ConnectivityMethod.COHERENCE, ConnectivityMethod.IMAG_COHERENCE):
-            conn = ConnectivityService._spectral_connectivity(data, sfreq, freqs, params)
+            conn = ConnectivityService._spectral_connectivity(
+                data, sfreq, freqs, params, is_epochs=is_epochs)
         elif params.method in (ConnectivityMethod.PLV, ConnectivityMethod.PLI, ConnectivityMethod.WPLI):
             conn = ConnectivityService._phase_connectivity(data, sfreq, freqs, params)
         elif params.method in (ConnectivityMethod.GCA, ConnectivityMethod.DTF, ConnectivityMethod.PDC):
-            conn = ConnectivityService._granger_connectivity(data, sfreq, freqs, params)
+            conn = ConnectivityService._granger_connectivity(
+                data, sfreq, freqs, params, is_epochs=is_epochs)
         else:
             raise ValueError(f"不支持的连通性方法: {params.method}")
 
@@ -132,7 +134,8 @@ class ConnectivityService:
 
     @staticmethod
     def _spectral_connectivity(
-        data: np.ndarray, sfreq: float, freqs: np.ndarray, params: ConnectivityParams
+        data: np.ndarray, sfreq: float, freqs: np.ndarray, params: ConnectivityParams,
+        is_epochs: bool = True,
     ) -> np.ndarray:
         """谱相干性连通性"""
         try:
@@ -142,6 +145,7 @@ class ConnectivityService:
             return ConnectivityService._simple_coherence(data, sfreq, freqs)
 
         n_epochs, n_ch, n_times = data.shape
+        fmax = float(freqs[-1])  # 由调用方 linspace 构造，等价于 params.fmax or sfreq/2
 
         # 准备索引
         if params.indices is not None:
@@ -250,7 +254,8 @@ class ConnectivityService:
 
     @staticmethod
     def _granger_connectivity(
-        data: np.ndarray, sfreq: float, freqs: np.ndarray, params: ConnectivityParams
+        data: np.ndarray, sfreq: float, freqs: np.ndarray, params: ConnectivityParams,
+        is_epochs: bool = True,
     ) -> np.ndarray:
         """格兰杰因果 / DTF / PDC"""
         try:
@@ -259,6 +264,7 @@ class ConnectivityService:
             raise RuntimeError("格兰杰因果需要 MNE: pip install mne")
 
         n_epochs, n_ch, n_times = data.shape
+        fmax = float(freqs[-1])
 
         if params.indices is not None:
             indices = params.indices
@@ -281,11 +287,11 @@ class ConnectivityService:
         )
 
         # 重塑
+        # MNE 无论输入是单段还是多个 epoch 都返回 (n_connections, n_freqs) 并已跨 epoch 平均。
+        # 统一转成 (n_freqs, n_ch, n_ch)，与 _spectral_connectivity 的单段分支一致。
+        conn = con.reshape(n_ch, n_ch, -1).transpose(2, 0, 1)
         if is_epochs:
-            conn = np.zeros((n_epochs, len(freqs), n_ch, n_ch))
-            # ... 类似 spectral_connectivity
-        else:
-            conn = con.reshape(n_ch, n_ch, -1).transpose(2, 0, 1)
+            conn = conn[np.newaxis]  # 保留 epoch 维 -> (1, n_freqs, n_ch, n_ch)
 
         return conn
 

@@ -374,7 +374,7 @@ class NonlinearService:
 
     # ---- Lempel-Ziv 复杂度 ----
     @staticmethod
-    def _lz_complexity(data: np.ndarray, params: NonlinearParams) -> np.ndarray:
+    def _lz_complexity(data: np.ndarray, params: NonlinearParams, is_epochs: bool = True) -> np.ndarray:
         """Lempel-Ziv 复杂度 (基于中位数二值化)"""
         n_epochs, n_ch, n_times = data.shape
 

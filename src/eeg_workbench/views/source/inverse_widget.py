@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.models.source import InverseParams, InverseMethod
+from eeg_workbench.services.source import InverseService
 from eeg_workbench.utils.ui import balance_form
 
 

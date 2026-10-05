@@ -2,6 +2,8 @@
 from __future__ import annotations
 from typing import Optional
 
+import numpy as np
+
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,

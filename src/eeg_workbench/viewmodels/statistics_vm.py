@@ -4,6 +4,8 @@ from typing import Optional, Any
 from dataclasses import dataclass
 from enum import Enum
 
+import numpy as np
+
 from PySide6.QtCore import Signal, Slot, QObject
 
 from eeg_workbench.core.base import ViewModelBase, async_slot
