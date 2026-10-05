@@ -1,6 +1,6 @@
 """重参考服务：平均参考、乳突参考、Cz、单电极、REST、自定义"""
 from __future__ import annotations
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any
 import time
 import numpy as np
@@ -15,7 +15,9 @@ class ReferenceResult:
     dataset: EEGDataset
     params_used: ReferenceParams
     processing_time_ms: float
-    ref_info: dict[str, Any] = None
+    # apply() 的每条分支都保证传入 dict；default_factory 只是让“裸构造”
+    # 的测试/调用方也拿到 dict 而不是 None，VM 可直接 .get 无需判空
+    ref_info: dict[str, Any] = field(default_factory=dict)
 
 
 class ReferenceService:
@@ -34,7 +36,8 @@ class ReferenceService:
 
         raw = dataset.to_mne_raw(copy=copy)
 
-        # 根据参考类型处理
+        # 根据参考类型处理（显式标注：各分支的值类型不同，有 list 也有 str）
+        ref_info: dict[str, Any]
         if params.ref_type == ReferenceType.AVERAGE:
             # 平均参考
             raw.set_eeg_reference(ref_channels="average", projection=params.projection, verbose=verbose)

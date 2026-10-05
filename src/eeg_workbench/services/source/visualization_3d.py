@@ -249,7 +249,7 @@ class SourceVisualization3D:
 
 def plot_source_estimate(
     stc, subject: str = "fsaverage", **kwargs
-) -> dict:
+) -> BrainPlotData:
     """函数式接口"""
     viz = SourceVisualization3D()
     return viz.plot_source_estimate(stc, subject, **kwargs)

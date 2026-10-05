@@ -176,7 +176,7 @@ class SpectralService:
         n_epochs, n_ch, n_times = data.shape
 
         psd = np.zeros((n_epochs, n_ch, 0))
-        freqs = None
+        freqs: np.ndarray | None = None
 
         for ep in range(n_epochs):
             for ch in range(n_ch):
@@ -193,6 +193,10 @@ class SpectralService:
                     psd = np.zeros((n_epochs, n_ch, len(freqs)))
                 psd[ep, ch] = psd_ch[0]
 
+        if freqs is None:
+            # 空输入（n_epochs 或 n_ch 为 0）时循环一次都不跑；
+            # 返回空频率轴而不是 None，调用方始终拿到 ndarray
+            freqs = np.array([])
         return psd, freqs
 
     @staticmethod

@@ -1,5 +1,6 @@
 """置换检验服务：置换 t 检验、置换方差分析、簇置换检验"""
 from __future__ import annotations
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Optional
 import time
@@ -32,7 +33,7 @@ class PermutationService:
         group2: np.ndarray,
         params: PermutationParams,
         *,
-        statistic_func: callable | None = None,
+        statistic_func: Callable[[np.ndarray, np.ndarray], Any] | None = None,
         verbose: bool = False
     ) -> PermutationResult:
         """置换 t 检验"""
@@ -88,7 +89,7 @@ class PermutationService:
         combined: np.ndarray,
         n1: int,
         n2: int,
-        statistic_func: callable,
+        statistic_func: Callable[[np.ndarray, np.ndarray], Any],
         seed: int | None
     ) -> float:
         """单次置换"""
@@ -138,10 +139,10 @@ class PermutationService:
 
         # 阈值
         if params.cluster_threshold is None:
-            # 使用 t 分布的 95% 分位数
-            from scipy.stats import t
+            # 使用 t 分布的 95% 分位数（别名导入：上文循环变量已占用 t）
+            from scipy.stats import t as t_dist
             df = data.shape[0] - 1
-            threshold = t.ppf(0.975, df)
+            threshold = t_dist.ppf(0.975, df)
         else:
             threshold = params.cluster_threshold
 

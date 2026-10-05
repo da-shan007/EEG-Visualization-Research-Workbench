@@ -139,17 +139,18 @@ class ConnectivityWidget(QWidget):
     def _connect_signals(self):
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._cmb_type.currentTextChanged.connect(self._on_type_changed)
-        for w in [
-            self._cmb_matrix_cmap, self._spin_vmin, self._spin_vmax,
-            self._spin_threshold, self._cmb_layout, self._spin_node_size,
-            self._spin_edge_scale, self._chk_brain_surface
-        ]:
-            if isinstance(w, QComboBox):
-                w.currentTextChanged.connect(lambda *_: self._on_param_changed())
-            elif isinstance(w, QCheckBox):
-                w.toggled.connect(lambda *_: self._on_param_changed())
-            else:
-                w.valueChanged.connect(lambda *_: self._on_param_changed())
+        for w in [self._cmb_matrix_cmap, self._cmb_layout]:
+            w.currentTextChanged.connect(lambda *_: self._on_param_changed())
+        self._chk_brain_surface.toggled.connect(lambda *_: self._on_param_changed())
+        # 数值旋钮单独列成类型化清单：混在 QWidget 列表里写 else 分支时，
+        # mypy 只能把元素推断为 QWidget（它没有 valueChanged），误报 attr-defined
+        spins: list[QDoubleSpinBox | QSpinBox] = [
+            self._spin_vmin, self._spin_vmax,
+            self._spin_threshold, self._spin_node_size,
+            self._spin_edge_scale,
+        ]
+        for s in spins:
+            s.valueChanged.connect(lambda *_: self._on_param_changed())
 
         # 初始同步
         self._sync_from_vm()

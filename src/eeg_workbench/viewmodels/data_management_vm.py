@@ -269,7 +269,7 @@ class DataManagementViewModel(ViewModelBase):
         return cond
 
     # ---- 事件编辑代理 ----
-    def get_event_editor(self) -> EventEditor:
+    def get_event_editor(self) -> EventEditor | None:
         """获取或创建事件编辑器
 
         dataset 被替换后（montage/预处理等）旧编辑器持有过期快照，
