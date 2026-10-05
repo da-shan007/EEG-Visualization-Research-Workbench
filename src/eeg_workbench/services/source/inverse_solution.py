@@ -13,6 +13,22 @@ from eeg_workbench.models.source import (
 from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPayload
 
 
+# MNE 的 apply_inverse() 对方法名大小写敏感，只接受 'MNE'/'dSPM'/'sLORETA'/'eLORETA'，
+# 而 InverseMethod 的 value 全是小写（'mne'/'dspm'/...）。直接把 .value 传给 MNE
+# 会抛 ValueError，所以统一走这个映射。
+_MNE_METHOD_NAMES: dict[InverseMethod, str] = {
+    InverseMethod.MNE: "MNE",
+    InverseMethod.dSPM: "dSPM",
+    InverseMethod.sLORETA: "sLORETA",
+    InverseMethod.eLORETA: "eLORETA",
+}
+
+
+def _mne_method_name(method: InverseMethod) -> str:
+    """返回 MNE 认识的 canonical 方法名，未知方法退回 MNE。"""
+    return _MNE_METHOD_NAMES.get(method, "MNE")
+
+
 @dataclass
 class InverseSolutionResult:
     """逆向求解结果"""
@@ -57,7 +73,7 @@ class InverseService:
         noise_cov = InverseService._compute_noise_cov(raw, params, verbose)
 
         # 根据方法计算逆向解
-        if params.method in (InverseMethod.MNE, InverseMethod.DSPM, InverseMethod.SLORETA, InverseMethod.ELORETA):
+        if params.method in (InverseMethod.MNE, InverseMethod.dSPM, InverseMethod.sLORETA, InverseMethod.eLORETA):
             result = InverseService._compute_mne_family(
                 raw, fwd, noise_cov, params, verbose
             )
@@ -140,11 +156,11 @@ class InverseService:
         # 应用逆向解
         if params.method == InverseMethod.MNE:
             stc = apply_inverse(raw, inv, lambda2, method="MNE", verbose=verbose)
-        elif params.method == InverseMethod.DSPM:
+        elif params.method == InverseMethod.dSPM:
             stc = apply_inverse(raw, inv, lambda2, method="dSPM", verbose=verbose)
-        elif params.method == InverseMethod.SLORETA:
+        elif params.method == InverseMethod.sLORETA:
             stc = apply_inverse(raw, inv, lambda2, method="sLORETA", verbose=verbose)
-        elif params.method == InverseMethod.ELORETA:
+        elif params.method == InverseMethod.eLORETA:
             # eLORETA 需要特殊处理
             stc = apply_inverse(raw, inv, lambda2, method="eLORETA", verbose=verbose)
         else:
@@ -240,7 +256,7 @@ class InverseService:
         from mne.minimum_norm import apply_inverse_epochs
 
         lambda2 = params.lambda2 if params.lambda2 > 0 else 1.0 / params.snr**2
-        method = params.method.value if params.method != InverseMethod.ELORETA else "eLORETA"
+        method = _mne_method_name(params.method)
         
         stcs = apply_inverse_epochs(
             epochs, inv, lambda2, method=method,
@@ -257,7 +273,7 @@ class InverseService:
         from mne.minimum_norm import apply_inverse
 
         lambda2 = params.lambda2 if params.lambda2 > 0 else 1.0 / params.snr**2
-        method = params.method.value if params.method != InverseMethod.ELORETA else "eLORETA"
+        method = _mne_method_name(params.method)
         
         stc = apply_inverse(
             raw, inv, lambda2, method=method,

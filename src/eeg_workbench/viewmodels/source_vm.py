@@ -296,14 +296,55 @@ class SourceViewModel(ViewModelBase):
     def plot_connectivity_3d(self, connectivity_matrix, **kwargs):
         if not self._inverse_result:
             return None
-        
+
+        # 注意：InverseSolutionResult 上没有 .src（mne 的 SourceEstimate 也一样）。
+        # 顶点在 stc.vertices[0]；面片只能来自正向解的源空间。
+        stc_vertices = self._surface_vertices()
+        stc_faces = self._surface_faces()
+
         viz = SourceVisualization3D()
         return viz.plot_connectivity_3d(
             connectivity_matrix,
-            self._inverse_result.src[0].vert,
-            self._inverse_result.src[0].faces,
+            stc_vertices,
+            stc_faces,
             **kwargs
         )
+
+    def _surface_vertices(self):
+        """取当前逆解的顶点编号；拿不到就返回空数组而不是抛 AttributeError。"""
+        import numpy as np
+        try:
+            vertices = self._inverse_result.stc.vertices
+            if vertices:
+                return vertices[0]
+        except AttributeError:
+            pass
+        return np.empty(0, dtype=int)
+
+    def _surface_faces(self):
+        """从正向解源空间取表面面片（tri / use_tris / faces），取不到返回空网格。
+
+        下游 plot_connectivity_3d 只是把 faces 打包进结果字典，
+        所以拿不到时给空数组比抛异常更合适；但绝不能再引用不存在的 .src。
+        """
+        import numpy as np
+        empty = np.empty((0, 3), dtype=int)
+        fwd_result = getattr(self, "_forward_result", None)
+        fwd_obj = getattr(fwd_result, "fwd", None) if fwd_result else None
+        if fwd_obj is None:
+            return empty
+        try:
+            src = fwd_obj["src"]
+            space = src[0] if len(src) else None
+            if space is None:
+                return empty
+            for key in ("tri", "use_tris", "faces"):
+                faces = space.get(key) if hasattr(space, "get") else None
+                if faces is not None and len(faces):
+                    return faces
+        except Exception:
+            return empty
+        return empty
 
     def export_3d_scene(self, filepath: str, format: str = "html"):
         if self._viz is None:

@@ -54,6 +54,7 @@ class ExportFormat(str, Enum):
     CSV = "csv"            # 表格数据
     DOCX = "docx"          # Word 报告
     PPTX = "pptx"          # PPT 报告
+    EXCEL = "xlsx"         # Excel 表格（ExportService._export_excel 使用）
 
 
 class PlotBackend(Enum):
