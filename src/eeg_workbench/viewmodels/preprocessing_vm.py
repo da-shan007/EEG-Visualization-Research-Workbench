@@ -162,7 +162,7 @@ class PreprocessingViewModel(ViewModelBase):
 
     # ---- 预处理执行命令 ----
     @async_slot
-    def run_filter(self) -> FilterResult:
+    def run_filter(self) -> FilterResult | None:
         """执行滤波"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
@@ -185,7 +185,7 @@ class PreprocessingViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_reference(self) -> ReferenceResult:
+    def run_reference(self) -> ReferenceResult | None:
         """执行重参考"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
@@ -209,7 +209,7 @@ class PreprocessingViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_resample(self) -> ResampleResult:
+    def run_resample(self) -> ResampleResult | None:
         """执行重采样"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
@@ -232,7 +232,7 @@ class PreprocessingViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_ica_fit(self) -> ICAResult:
+    def run_ica_fit(self) -> ICAResult | None:
         """拟合 ICA"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
@@ -256,7 +256,7 @@ class PreprocessingViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_ica_apply(self, exclude: list[int] | None = None) -> ICAResult:
+    def run_ica_apply(self, exclude: list[int] | None = None) -> ICAResult | None:
         """应用 ICA (排除成分)"""
         if not self._ica_result or not self._ica_result.ica:
             self.error_occurred.emit("请先拟合 ICA")
@@ -276,7 +276,7 @@ class PreprocessingViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_ica_fit_apply(self) -> ICAResult:
+    def run_ica_fit_apply(self) -> ICAResult | None:
         """一步完成：拟合 + 应用"""
         result = self.run_ica_fit()
         if result:
@@ -284,7 +284,7 @@ class PreprocessingViewModel(ViewModelBase):
         return None
 
     @async_slot
-    def run_interpolation(self) -> InterpolationResult:
+    def run_interpolation(self) -> InterpolationResult | None:
         """执行坏道插值"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")

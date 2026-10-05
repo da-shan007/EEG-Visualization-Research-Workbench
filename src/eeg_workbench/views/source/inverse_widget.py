@@ -147,6 +147,12 @@ class InverseSolutionWidget(QWidget):
 
         layout.addWidget(time_group)
 
+        # ---- 正向模型信息（forward_model_ready 时填充） ----
+        # 注：_on_forward_ready 会写这个标签，缺了它就是运行时 AttributeError
+        self._lbl_fwd_info = QLabel("导场矩阵: 尚未计算")
+        self._lbl_fwd_info.setStyleSheet("color: #555; font-size: 12px;")
+        layout.addWidget(self._lbl_fwd_info)
+
         # ---- 执行按钮 ----
         exec_layout = QHBoxLayout()
         self._btn_compute = QPushButton("计算逆向解")

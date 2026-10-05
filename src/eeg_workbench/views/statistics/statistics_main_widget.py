@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QSplitter, QMenu
 )
 
-from eeg_workbench.utils.ui import wrap_scroll
+from eeg_workbench.utils.ui import relay_status, wrap_scroll
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
 from eeg_workbench.views.statistics.ttest_widget import TTestWidget
 from eeg_workbench.views.statistics.anova_widget import ANOVAWidget
@@ -131,9 +131,11 @@ class StatisticsMainWidget(QWidget):
         self._vm.status_message.connect(self.status_message.emit)
 
         # 子面板信号
-        for w in [self._ttest_widget, self._anova_widget, self._nonparam_widget, 
-                  self._perm_widget, self._corr_widget, self._effect_widget]:
-            w.status_message.connect(self.status_message.emit)
+        relay_status(
+            [self._ttest_widget, self._anova_widget, self._nonparam_widget,
+             self._perm_widget, self._corr_widget, self._effect_widget],
+            self.status_message,
+        )
 
     @Slot(object)
     def _on_dataset_changed(self, dataset: Optional[EEGDataset]):

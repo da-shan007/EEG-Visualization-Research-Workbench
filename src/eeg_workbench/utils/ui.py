@@ -15,6 +15,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from typing import Any
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox, QDoubleSpinBox, QFormLayout, QScrollArea, QSpinBox, QWidget,
@@ -116,3 +119,19 @@ def embed_figure(container_layout, fig, old_canvas_attr: str = "_fig_canvas"):
     if parent is not None and old_canvas_attr:
         setattr(parent, old_canvas_attr, canvas)
     return canvas
+
+
+def relay_status(panels: Iterable[Any], target: Any) -> None:
+    """把一组子面板的 ``status_message`` 信号接到父面板的同名信号。
+
+    各主面板都写过 ``for w in [子面板...]: w.status_message.connect(...)`` 这种循环，
+    但列表元素的静态公共基类是 ``QWidget``（它没有 ``status_message``），
+    于是 mypy 会误报 ``attr-defined``。契约集中在这里表达一次，
+    调用方只需给出面板清单；运行时行为与原循环完全一致。
+
+    参数：
+        panels: 拥有 ``status_message = Signal(str)`` 的子面板。
+        target: 父面板上的 ``status_message`` 信号（注意传信号本身，不是 .emit）。
+    """
+    for panel in panels:
+        panel.status_message.connect(target.emit)

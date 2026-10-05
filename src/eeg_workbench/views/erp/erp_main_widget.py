@@ -10,12 +10,13 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.utils.ui import wrap_scroll
-from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+from eeg_workbench.viewmodels.erp_vm import (
+    ERPViewModel, ERPAnalysisResult, ERDSAnalysisResult
+)
 from eeg_workbench.views.erp.erp_condition_widget import ERPConditionWidget
 from eeg_workbench.views.erp.erp_peak_widget import ERPPeakWidget
 from eeg_workbench.views.erp.erds_widget import ERDSWidget
 from eeg_workbench.models.dataset import EEGDataset
-from eeg_workbench.models.erp import ERPAnalysisResult, ERDSAnalysisResult
 
 
 class ERPMainWidget(QWidget):

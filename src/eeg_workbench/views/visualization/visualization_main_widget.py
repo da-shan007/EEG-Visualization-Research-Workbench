@@ -25,8 +25,8 @@ try:
     from matplotlib.figure import Figure
     from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 except Exception:  # pragma: no cover - matplotlib 缺失时绘图功能整体不可用
-    Figure = None
-    FigureCanvasQTAgg = None
+    Figure = None  # type: ignore
+    FigureCanvasQTAgg = None  # type: ignore
 
 
 class VisualizationMainWidget(QWidget):

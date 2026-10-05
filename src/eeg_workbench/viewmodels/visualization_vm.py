@@ -20,6 +20,7 @@ from eeg_workbench.models.visualization import (
 from eeg_workbench.services.visualization import (
     PlottingService, ReportGenerator, ExportService
 )
+from eeg_workbench.services.features import ConnectivityService
 from eeg_workbench.services.visualization.plotting import FigureResult
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
@@ -304,11 +305,29 @@ class VisualizationViewModel(ViewModelBase):
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
             return None
-        self.show_status(f"正在计算连通性 ({self._connectivity_config.method})...")
-        result = self._plotting_service.plot_connectivity(self._dataset, self._connectivity_config)
+        # 图服务只负责画，不负责算：PlottingService.plot_connectivity 要求
+        # 显式传入 (n_ch, n_ch) 矩阵，否则抛 ValueError。
+        # 之前这里只传了 dataset + config，按钮点下去必崩。
+        conn_result = ConnectivityService.coherence(self._dataset)
+        feature_result = conn_result.feature_result
+        matrix = feature_result.connectivity if feature_result else None
+        if matrix is None:
+            self.error_occurred.emit("连通性计算未返回矩阵")
+            return None
+        # (n_freqs, n_ch, n_ch) → 取频率均值成 2D，绘图服务只吃 2D
+        if matrix.ndim == 3:
+            matrix = matrix.mean(axis=0)
+
+        method_label = (
+            conn_result.params_used.method.value if conn_result.params_used else "coherence"
+        )
+        self.show_status(f"正在绘制连通性 ({method_label})...")
+        result = self._plotting_service.plot_connectivity(
+            self._dataset, self._connectivity_config, matrix
+        )
         if result:
             self._current_figure = result.figure
-            self._add_step("连通性", f"{self._connectivity_config.method}")
+            self._add_step("连通性", f"{method_label}")
             self.figure_ready.emit(result)
             self.status_message.emit("连通性图绘制完成")
         return result

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QSplitter
 )
 
-from eeg_workbench.utils.ui import wrap_scroll
+from eeg_workbench.utils.ui import relay_status, wrap_scroll
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
 from eeg_workbench.views.source.head_model_widget import HeadModelWidget
 from eeg_workbench.views.source.forward_widget import ForwardModelWidget
@@ -104,8 +104,11 @@ class SourceMainWidget(QWidget):
         self._vm.status_message.connect(self.status_message.emit)
 
         # 子面板信号
-        for w in [self._head_widget, self._forward_widget, self._inverse_widget, self._dipole_widget, self._viz_widget]:
-            w.status_message.connect(self.status_message.emit)
+        relay_status(
+            [self._head_widget, self._forward_widget, self._inverse_widget,
+             self._dipole_widget, self._viz_widget],
+            self.status_message,
+        )
 
     @Slot(object)
     def _on_dataset_changed(self, dataset: Optional[EEGDataset]):

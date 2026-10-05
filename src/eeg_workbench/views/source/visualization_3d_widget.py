@@ -283,6 +283,13 @@ class Visualization3DWidget(QWidget):
         path, _ = QFileDialog.getSaveFileName(self, "导出 HTML", "", "HTML 文件 (*.html)")
         if not path:
             return
+        self.export_html(path)
+
+    def export_html(self, path: str) -> None:
+        """把当前预览图写成自包含 HTML（无需文件对话框，供外部按路径导出）。"""
+        if self._current_fig is None:
+            self.status_message.emit("暂无预览图可导出：请先切换可视化类型生成预览")
+            return
         try:
             buf = io.BytesIO()
             self._current_fig.savefig(buf, format="png", dpi=150)
@@ -301,19 +308,36 @@ class Visualization3DWidget(QWidget):
 
     @Slot()
     def _export_stl(self):
+        from PySide6.QtWidgets import QFileDialog
+        path, _ = QFileDialog.getSaveFileName(self, "导出 STL", "", "STL 文件 (*.stl)")
+        if path:
+            self.export_stl(path)
+
+    def export_stl(self, path: str) -> None:
+        """把当前脑表面网格导出为 STL（需要 pyvista Brain，否则给出明确提示）。"""
         viz = getattr(self._vm, "_viz", None)
         brain = getattr(viz, "_brain", None) if viz else None
         if brain is None:
             self.status_message.emit("STL 导出需要 pyvista Brain 网格（当前未安装/未绘制）")
             return
-        from PySide6.QtWidgets import QFileDialog
-        path, _ = QFileDialog.getSaveFileName(self, "导出 STL", "", "STL 文件 (*.stl)")
-        if path:
-            try:
-                brain.export_stl(path)
-                self.status_message.emit(f"STL 已导出: {path}")
-            except Exception as e:
-                self.status_message.emit(f"STL 导出失败: {e}")
+        try:
+            brain.export_stl(path)
+            self.status_message.emit(f"STL 已导出: {path}")
+        except Exception as e:
+            self.status_message.emit(f"STL 导出失败: {e}")
+
+    def export_3d_scene(self, path: str) -> None:
+        """按扩展名导出 3D 场景（.html → 自包含预览页；.stl → 网格文件）。
+
+        这是源定位页“导出 3D 场景”按钮的落点。
+        """
+        lower = path.lower()
+        if lower.endswith(".html"):
+            self.export_html(path)
+        elif lower.endswith(".stl"):
+            self.export_stl(path)
+        else:
+            self.status_message.emit(f"不支持的场景导出格式: {path}（支持 .html / .stl）")
 
     def _sync_params(self):
         # 同步可视化参数

@@ -16,8 +16,15 @@ from eeg_workbench.models.erp import (
     create_erp_params, create_erds_params
 )
 from eeg_workbench.services.erp import (
-    ERPService, ERDSService, PeakDetector, TopomapService,
-    ERPAnalysisResult, ERDSAnalysisResult, PeakResult
+    ERPService, ERDSService, PeakDetector, TopomapService, PeakResult
+)
+# 显式重导出：view 层不允许直接 import services（ADR 002），
+# 所以这两个结果类型经由本 VM 模块作为唯一出口。
+# `as X` 同名别名是 mypy --strict 的 no_implicit_reexport 认可的重导出写法，
+# 因此这里不能再用普通 import 形式重复引入同名类。
+from eeg_workbench.services.erp import (
+    ERPAnalysisResult as ERPAnalysisResult,
+    ERDSAnalysisResult as ERDSAnalysisResult,
 )
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel

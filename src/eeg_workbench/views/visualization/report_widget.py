@@ -19,6 +19,7 @@ class ReportWidget(QWidget):
     """报告生成面板"""
 
     status_message = Signal(str)
+    params_changed = Signal()  # 报告参数变更（供上层感知，_on_param_changed 会 emit）
 
     def __init__(self, viewmodel, parent: Optional[QWidget] = None):
         super().__init__(parent)

@@ -16,7 +16,7 @@ from eeg_workbench.views.features import (
 )
 from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.features import FeatureExtractionResult
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.utils.ui import balance_form, relay_status
 
 
 class FeaturesMainWidget(QWidget):
@@ -112,8 +112,10 @@ class FeaturesMainWidget(QWidget):
         self._vm.status_message.connect(self.status_message.emit)
 
         # 子面板信号
-        for w in [self._band_power_widget, self._tf_widget, self._conn_widget, self._nonlinear_widget]:
-            w.status_message.connect(self.status_message.emit)
+        relay_status(
+            [self._band_power_widget, self._tf_widget, self._conn_widget, self._nonlinear_widget],
+            self.status_message,
+        )
 
     @Slot(object)
     def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
