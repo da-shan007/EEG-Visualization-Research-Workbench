@@ -89,7 +89,7 @@ class Command(QObject):
         self._kwargs = kwargs
         self._cancelled = False
         self._result = None
-        self._error = None
+        self._error: str | None = None
 
     def cancel(self) -> None:
         self._cancelled = True

@@ -200,7 +200,7 @@ class PeakResult:
     channel: str            # 峰值通道
     polarity: str           # "positive" / "negative"
     time_window: tuple[float, float]
-    all_candidates: list[dict] = None  # 所有候选峰值
+    all_candidates: list[dict] | None = None  # 所有候选峰值
 
 
 @dataclass

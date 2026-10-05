@@ -267,7 +267,7 @@ class FeatureExtractionResult:
 
 
 # ---- 常用频段预设 ----
-STANDARD_BANDS = {
+STANDARD_BANDS: dict[str, tuple[float, float]] = {
     "Delta": (0.5, 4),
     "Theta": (4, 8),
     "Alpha": (8, 13),
@@ -275,7 +275,7 @@ STANDARD_BANDS = {
     "Gamma": (30, 45),
 }
 
-ERP_BANDS = {
+ERP_BANDS: dict[str, tuple[float, float]] = {
     "Delta": (1, 4),
     "Theta": (4, 7),
     "Alpha": (8, 12),
@@ -283,7 +283,7 @@ ERP_BANDS = {
     "Gamma": (30, 50),
 }
 
-MICRO_BANDS = {
+MICRO_BANDS: dict[str, tuple[float, float]] = {
     "SlowDelta": (0.1, 1),
     "Delta": (1, 4),
     "Theta": (4, 8),
@@ -295,7 +295,7 @@ MICRO_BANDS = {
     "HighGamma": (60, 90),
 }
 
-CUSTOM_BAND_PRESETS = {
+CUSTOM_BAND_PRESETS: dict[str, dict[str, tuple[float, float]]] = {
     "standard": STANDARD_BANDS,
     "erp": ERP_BANDS,
     "micro": MICRO_BANDS,

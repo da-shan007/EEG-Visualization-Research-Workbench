@@ -54,6 +54,7 @@ class _ConfigManager:
     """线程安全的配置单例管理器"""
     _instance: Optional[_ConfigManager] = None
     _lock = Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         with cls._lock:

@@ -113,6 +113,7 @@ class EventBus:
 
     _instance: "EventBus | None" = None
     _lock = Lock()
+    _initialized: bool = False
 
     def __new__(cls):
         with cls._lock:

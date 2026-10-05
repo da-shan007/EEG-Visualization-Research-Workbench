@@ -41,7 +41,10 @@ class ChannelInfo:
         if isinstance(self.type, str):
             self.type = ChannelType(self.type.lower())
         if self.location is not None:
-            self.location = tuple(float(v) for v in self.location)
+            # 显式解包成 3 元组：既满足 tuple[float, float, float] 契约，
+            # 又让坐标点数不对的输入在加载阶段就暴露为 ValueError 而非悄悄带病运行
+            x, y, z = (float(v) for v in self.location)
+            self.location = (x, y, z)
 
 
 @dataclass(slots=True)
