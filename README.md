@@ -14,7 +14,7 @@
 |------|---------|------|
 | **数据管理** | 多格式读取 (EDF/BDF/BrainVision/EEGLAB/CSV/Excel)、元数据编辑、事件编辑器、裁剪拼接、标准蒙版 | ✅ 完整 |
 | **预处理** | 滤波(高通/低通/带通/陷波)、重参考、ICA拟合/应用/自动标记、重采样、坏道插值、标准流水线 | ✅ 完整 |
-| **特征提取** | 频段功率、时频分析(Morlet/Multitaper/Stockwell)、连通性(PLV/相干/虚部相干/PAC/Granger)、非线性特征 | ✅ 完整 |
+| **特征提取** | 频段功率、时频分析(Morlet/Multitaper/Stockwell)、连通性(相干/虚部相干/PLV/PLI/wPLI/Granger/DTF/PDC)、非线性特征 | ✅ 完整 |
 | **ERP/ERD/ERS** | 叠加平均、峰值检测、拓扑图、时频功率谱、单试次ERP | ✅ 完整 |
 | **源定位** | 球形/BEM/FEM/多层球头模型、表面/体积/混合源空间、MNE/dSPM/sLORETA/eLORETA/LCMV/DICS逆解、偶极子拟合、3D可视化 | ✅ 完整 |
 | **统计分析** | t检验/ANOVA(含重复测量)、非参数(KW/Friedman)、多重比较校正(FDR/Bonferroni/TFCE)、排列检验、效应量 | ✅ 完整 |
@@ -78,7 +78,7 @@ src/eeg_workbench/
 
 1. **MVVM 分层**: Models(纯数据) → Services(无状态逻辑) → ViewModels(异步命令/状态) → Views(纯 Qt)
 2. **事件总线解耦**: 跨模块通信通过 `get_event_bus().publish/subscribe`
-3. **不可变数据更新**: 修改返回新实例，支持撤销/重做
+3. **撤销/重做**: 事件编辑器支持撤销/重做 (`EditorAction` 栈)
 4. **MNE 无缝互操作**: `dataset.to_mne_raw()` / `EEGDataset.from_mne_raw(raw)`
 5. **跨版本兼容**: `utils.montage.make_standard_montage_compat` 自动处理 MNE 1.13+ `standard_1020`→`colin27_1020` 重命名
 
@@ -86,7 +86,7 @@ src/eeg_workbench/
 
 | 项目 | 要求 |
 |------|------|
-| 一键版 | Windows 10/11 64 位，双击 `启动EEGWorkbench.exe`，无需 Python |
+| 一键版 | Windows 64 位，双击 `启动EEGWorkbench.exe`，无需 Python |
 | 源码版 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
 
 ## 依赖环境 (实测可复现)
@@ -103,8 +103,8 @@ src/eeg_workbench/
 | pyedflib | 0.1.42 | EDF/BDF 读取 |
 | pingouin | 0.7.0 | 统计检验 |
 | statsmodels | 0.15.0 | 重复测量 ANOVA |
-| mne-bids | 0.18.0 | BIDS 支持 |
-| pyqtgraph | 0.13.7 | 高性能绘图 |
+| mne-bids | 0.20.0 | BIDS 支持 |
+| pyqtgraph | 0.14.0 | 高性能绘图 |
 
 ## 快速开始
 
@@ -163,9 +163,9 @@ outputs/
 - **采样率**: 读取时显式指定，重采样保留事件时间戳
 - **通道顺序**: 读取时保留文件顺序，Montage 仅用于空间定位
 - **坐标系**: 传感器空间用 MNE Head 空间 (m)；源空间用 MRI (surface RAS, mm)
-- **滤波**: FIR 零相位 (MNE 默认)，陷波 50/60 Hz 可选
-- **ICA**: FastICA/Infomax/Picard 可选，ICLabel 自动标记成分
-- **源定位**: BEM 推荐 fsaverage 模板；球形模型仅作快速验证；FEM 需外部工具生成 .msh
+- **滤波**: FIR 零相位 (MNE 默认)，陷波频率可调 (默认 50 Hz)
+- **ICA**: FastICA/Infomax/Picard 可选，EOG/ECG 相关自动标记伪迹成分
+- **源定位**: 球形/BEM/FEM 头模型可选；球形模型仅作快速验证
 
 ## 故障排除
 
