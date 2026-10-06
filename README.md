@@ -1,8 +1,12 @@
 # EEG Visualization Research Workbench
 
+[![CI](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/actions/workflows/ci.yml/badge.svg)](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](environment.yml)
+[![MNE-Python 1.13](https://img.shields.io/badge/MNE--Python-1.13-orange.svg)](https://mne.tools)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](启动EEGWorkbench.exe)
 
-科研级 EEG 分析软件：从数据导入到源定位的完整分析流水线。
+科研级 EEG 分析桌面软件：从数据导入到源定位的完整分析流水线（PySide6 + MNE-Python）。
 
 ## 功能总览
 
@@ -17,6 +21,9 @@
 | **可视化与报告** | 原始波形、频谱、时频图、拓扑图、源空间3D、HTML/PDF/DOCX/PPTX报告导出 | ✅ 完整 |
 
 ## 架构设计
+
+<details>
+<summary>点击展开目录结构（MVVM 分层，约 120 个模块，mypy --strict 全绿）</summary>
 
 ```
 src/eeg_workbench/
@@ -65,6 +72,8 @@ src/eeg_workbench/
     └── validators.py           # 文件/参数/业务规则校验
 ```
 
+</details>
+
 ### 关键设计原则
 
 1. **MVVM 分层**: Models(纯数据) → Services(无状态逻辑) → ViewModels(异步命令/状态) → Views(纯 Qt)
@@ -72,6 +81,13 @@ src/eeg_workbench/
 3. **不可变数据更新**: 修改返回新实例，支持撤销/重做
 4. **MNE 无缝互操作**: `dataset.to_mne_raw()` / `EEGDataset.from_mne_raw(raw)`
 5. **跨版本兼容**: `utils.montage.make_standard_montage_compat` 自动处理 MNE 1.13+ `standard_1020`→`colin27_1020` 重命名
+
+## 系统要求
+
+| 项目 | 要求 |
+|------|------|
+| 一键版 | Windows 10/11 64 位，双击 `启动EEGWorkbench.exe`，无需 Python |
+| 源码版 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
 
 ## 依赖环境 (实测可复现)
 
@@ -90,21 +106,17 @@ src/eeg_workbench/
 | mne-bids | 0.18.0 | BIDS 支持 |
 | pyqtgraph | 0.13.7 | 高性能绘图 |
 
-### 安装
-
-```bash
-# 推荐：conda 环境 (含 MNE 二进制依赖)
-conda env create -f environment.yml
-conda activate eeg-workbench
-
-# 或 pip (需预装系统级依赖)
-pip install -e .
-```
-
 ## 快速开始
 
 ```bash
-# 开发模式
+# 方式一：一键运行（推荐，无需安装 Python）
+双击 启动EEGWorkbench.exe
+```
+
+```bash
+# 方式二：源码运行
+conda env create -f environment.yml
+conda activate eeg-workbench
 cd src
 python -m eeg_workbench
 
@@ -115,11 +127,11 @@ eeg-workbench
 ## 测试与质量
 
 ```bash
-# 完整测试套件 (203 测试通过)
+# 完整测试套件 (208 测试通过)
 pytest tests/ -q
 
-# 类型检查
-mypy src/eeg_workbench
+# 类型检查 (120 文件，mypy --strict 零错误)
+mypy src/eeg_workbench --strict
 
 # 代码格式
 ruff check src/eeg_workbench
@@ -155,6 +167,19 @@ outputs/
 - **ICA**: FastICA/Infomax/Picard 可选，ICLabel 自动标记成分
 - **源定位**: BEM 推荐 fsaverage 模板；球形模型仅作快速验证；FEM 需外部工具生成 .msh
 
+## 故障排除
+
+- **中文显示异常**: 已内置中文字体自动加载，无需配置；如仍有方框请提 issue。
+- **窄带滤波警告** (`filter_length`): 窄带 FIR 需要物理最小长度，极短数据段无法满足是正常现象，用更长的数据段即可，不是 bug。
+- **MNE 版本**: 依赖已用 `requirements-lock.txt` 锁定为 MNE 1.13.2，自行升级可能遇到 `standard_1020` 等 API 更名问题（代码内已有兼容层）。
+
+## 引用
+
+本项目暂无专用论文。如用于科研，底层信号处理方法请引用 MNE-Python：
+
+> Gramfort, A. et al. (2013). MEG and EEG data analysis with MNE-Python.
+> Frontiers in Neuroscience, 7, 267. doi:10.3389/fninf.2013.00014
+
 ## 许可
 
-MIT License
+[MIT License](LICENSE)
