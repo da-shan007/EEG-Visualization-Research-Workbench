@@ -1,5 +1,7 @@
 # EEG Visualization Research Workbench
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 科研级 EEG 分析软件：从数据导入到源定位的完整分析流水线。
 
 ## 功能总览
