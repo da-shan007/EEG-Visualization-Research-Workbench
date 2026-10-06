@@ -121,13 +121,13 @@ class TimeFrequencyService:
         )
 
     @staticmethod
-    def _resolve_picks(picks, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
+    def _resolve_picks(picks: list[str] | str | None, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
         if picks is None:
             return None
         if isinstance(picks, str):
             if picks == "eeg":
                 return [i for i, ch in enumerate(ch_names)
-                        if dataset.channel_info.get(ch).type.value == "eeg"]
+                        if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eeg"]
             elif picks == "data":
                 return list(range(len(ch_names)))
         if isinstance(picks, list):
@@ -163,14 +163,17 @@ class TimeFrequencyService:
                 )
                 tfr[ep, ch] = Zxx
 
-        # 转换输出格式
+        # 转换输出格式（power/phase 为实数输出，用新变量承接，
+        # 避免复用 complex 类型的 tfr 触发类型冲突）
         if params.output == "power":
-            tfr = np.abs(tfr) ** 2
+            tfr_out: np.ndarray = np.abs(tfr) ** 2
         elif params.output == "phase":
-            tfr = np.angle(tfr)
-        # complex 保持不变
+            tfr_out = np.angle(tfr)
+        else:
+            # complex 保持不变
+            tfr_out = tfr
 
-        return tfr, f, t
+        return tfr_out, f, t
 
     @staticmethod
     def _morlet_tfr(data: np.ndarray, sfreq: float, params: TimeFrequencyParams) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -271,17 +274,17 @@ class TimeFrequencyService:
 
     # ---- 便捷方法 ----
     @classmethod
-    def morlet(cls, dataset: EEGDataset, **kwargs) -> TFRResult:
+    def morlet(cls, dataset: EEGDataset, **kwargs: Any) -> TFRResult:
         params = TimeFrequencyParams(method=TimeFrequencyMethod.MORLET, **kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def stft(cls, dataset: EEGDataset, **kwargs) -> TFRResult:
+    def stft(cls, dataset: EEGDataset, **kwargs: Any) -> TFRResult:
         params = TimeFrequencyParams(method=TimeFrequencyMethod.STFT, **kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def multitaper_tfr(cls, dataset: EEGDataset, **kwargs) -> TFRResult:
+    def multitaper_tfr(cls, dataset: EEGDataset, **kwargs: Any) -> TFRResult:
         params = TimeFrequencyParams(method=TimeFrequencyMethod.MULTITAPER, **kwargs)
         return cls.compute(dataset, params)
 
@@ -289,6 +292,6 @@ class TimeFrequencyService:
 def compute_tfr(
     dataset: EEGDataset,
     params: TimeFrequencyParams,
-    **kwargs
+    **kwargs: Any
 ) -> TFRResult:
     return TimeFrequencyService.compute(dataset, params, **kwargs)

@@ -1,6 +1,6 @@
 """ERP/ERD/ERS 模块 ViewModel"""
 from __future__ import annotations
-from typing import Optional, Any
+from typing import Optional, Any, Mapping
 from dataclasses import dataclass
 
 import numpy as np
@@ -13,7 +13,7 @@ from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.erp import (
     ERPAnalysisParams, ERDSParams, EpochParams,
     ERPComponent, DEFAULT_ERP_PEAK_WINDOWS, DEFAULT_ERP_POLARITY,
-    create_erp_params, create_erds_params
+    PeakPolarity, create_erp_params, create_erds_params
 )
 from eeg_workbench.services.erp import (
     ERPService, ERDSService, PeakDetector, TopomapService, PeakResult
@@ -36,7 +36,7 @@ class ERPResultUI:
     """UI 显示用的 ERP 结果"""
     condition: str
     n_epochs: int
-    peaks: dict  # {component: {latency, amplitude, channel}}
+    peaks: dict[str, dict[str, Any]]  # {component: {latency, amplitude, channel}}
     has_contrast: bool = False
 
 
@@ -59,7 +59,7 @@ class ERPViewModel(ViewModelBase):
         preproc_vm: PreprocessingViewModel,
         features_vm: FeaturesViewModel,
         parent: QObject | None = None
-    ):
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._preproc_vm = preproc_vm
@@ -116,17 +116,17 @@ class ERPViewModel(ViewModelBase):
         return []
 
     # ---- 参数设置 ----
-    def set_erp_params(self, **kwargs) -> None:
+    def set_erp_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._erp_params, k):
                 setattr(self._erp_params, k, v)
 
-    def set_erds_params(self, **kwargs) -> None:
+    def set_erds_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._erds_params, k):
                 setattr(self._erds_params, k, v)
 
-    def set_epoch_params(self, condition: str, **kwargs) -> None:
+    def set_epoch_params(self, condition: str, **kwargs: Any) -> None:
         """设置特定条件的 Epoch 参数"""
         if condition not in self._erp_params.conditions:
             self._erp_params.conditions[condition] = EpochParams()
@@ -135,7 +135,7 @@ class ERPViewModel(ViewModelBase):
             if hasattr(ep, k):
                 setattr(ep, k, v)
 
-    def set_erds_epoch_params(self, condition: str, **kwargs) -> None:
+    def set_erds_epoch_params(self, condition: str, **kwargs: Any) -> None:
         if condition not in self._erds_params.conditions:
             self._erds_params.conditions[condition] = EpochParams()
         ep = self._erds_params.conditions[condition]
@@ -192,7 +192,7 @@ class ERPViewModel(ViewModelBase):
         self,
         components: list[ERPComponent] | None = None,
         time_windows: dict[ERPComponent, tuple[float, float]] | None = None,
-        polarities: dict[ERPComponent, str] | None = None
+        polarities: dict[ERPComponent, PeakPolarity] | None = None
     ) -> None:
         """设置峰值检测参数"""
         if components:
@@ -267,7 +267,7 @@ class ERPViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_peak_detection(self, condition: str | None = None) -> dict | None:
+    def run_peak_detection(self, condition: str | None = None) -> dict[str, Any] | None:
         """手动运行峰值检测"""
         if not self._erp_result:
             self.error_occurred.emit("请先运行 ERP 分析")
@@ -286,7 +286,7 @@ class ERPViewModel(ViewModelBase):
         self,
         condition: str,
         time_window: tuple[float, float],
-        polarity: str = "both"
+        polarity: PeakPolarity = "both"
     ) -> PeakResult | None:
         """自定义峰值检测"""
         if not self._erp_result or condition not in self._erp_result.result.evokeds:
@@ -363,7 +363,7 @@ class ERPViewModel(ViewModelBase):
         tfr = self._erds_result.result.avg_tfrs[condition]
         
         if times is None:
-            times = np.linspace(tfr.times[0], tfr.times[-1], 6)
+            times = [float(v) for v in np.linspace(tfr.times[0], tfr.times[-1], 6)]
 
         # 选择频段
         if band in self._erds_params.bands:
@@ -378,11 +378,15 @@ class ERPViewModel(ViewModelBase):
         if not self._erp_result:
             return False
         try:
+            import json
             import numpy as np
             np.savez(
                 file_path,
                 conditions=list(self._erp_result.result.evokeds.keys()),
-                peaks=self._serialize_peaks(self._erp_result.result.peaks),
+                # NPZ 存不了嵌套 dict（运行时会 ValueError），转 JSON 字符串
+                peaks_json=json.dumps(
+                    self._serialize_peaks(self._erp_result.result.peaks),
+                    ensure_ascii=False),
             )
             self.show_status(f"ERP 结果已导出: {file_path}")
             return True
@@ -425,39 +429,50 @@ class ERPViewModel(ViewModelBase):
         self._processing_steps.append(desc)
         self.processing_steps_changed.emit(self._processing_steps)
 
-    def _emit_peaks(self, peaks: dict) -> None:
-        """发射峰值信号，转换为可序列化格式
+    @staticmethod
+    def _peak_to_dict(peak: dict[str, Any] | PeakResult | None) -> dict[str, Any] | None:
+        """把两种峰值表示统一成可序列化 dict。
 
-        ERPService._detect_peaks 返回 {ERPComponent: {"latency": ..., ...} | None}
-        （纯 dict，非 PeakResult 对象），需按键访问。
+        ERPService._detect_peaks 给纯 dict，PeakDetector.batch_detect 给
+        PeakResult 对象（后者不支持 peak["latency"] 下标访问，以前直接走
+        _emit_peaks 会 TypeError）。
         """
-        serializable = {}
+        if peak is None:
+            return None
+        if isinstance(peak, PeakResult):
+            return {
+                "latency": peak.latency,
+                "amplitude": peak.amplitude,
+                "channel": peak.channel,
+                "polarity": peak.polarity,
+            }
+        if not peak:
+            return None
+        return {
+            "latency": peak["latency"],
+            "amplitude": peak["amplitude"],
+            "channel": peak["channel"],
+            "polarity": peak["polarity"],
+        }
+
+    def _emit_peaks(self, peaks: Mapping[str, Mapping[ERPComponent, Any]]) -> None:
+        """发射峰值信号，转换为可序列化格式"""
+        serializable: dict[str, dict[str, dict[str, Any]]] = {}
         for cond, cond_peaks in peaks.items():
             serializable[cond] = {}
             for comp, peak in cond_peaks.items():
-                if peak:
-                    serializable[cond][comp.value] = {
-                        "latency": peak["latency"],
-                        "amplitude": peak["amplitude"],
-                        "channel": peak["channel"],
-                        "polarity": peak["polarity"],
-                    }
+                peak_dict = self._peak_to_dict(peak)
+                if peak_dict:
+                    serializable[cond][comp.value] = peak_dict
         self.peaks_detected.emit(serializable)
 
-    def _serialize_peaks(self, peaks: dict) -> dict:
-        result = {}
+    @staticmethod
+    def _serialize_peaks(peaks: Mapping[str, Mapping[ERPComponent, Any]]) -> dict[str, Any]:
+        result: dict[str, dict[str, dict[str, Any]]] = {}
         for cond, cond_peaks in peaks.items():
             result[cond] = {}
             for comp, peak in cond_peaks.items():
-                if peak:
-                    result[cond][comp.value] = {
-                        "latency": peak["latency"],
-                        "amplitude": peak["amplitude"],
-                        "channel": peak["channel"],
-                        "polarity": peak["polarity"],
-                    }
+                peak_dict = ERPViewModel._peak_to_dict(peak)
+                if peak_dict:
+                    result[cond][comp.value] = peak_dict
         return result
-
-
-# 需要导入
-from eeg_workbench.models.erp import ERPComponent

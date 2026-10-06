@@ -24,7 +24,7 @@ from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPay
 class TTestResult:
     """t 检验结果"""
     result: ComparisonResult
-    group_stats: dict
+    group_stats: dict[str, Any]
     processing_time_ms: float
 
 
@@ -42,13 +42,18 @@ class StatisticalTestService:
         """运行 t 检验"""
         start_time = time.perf_counter()
 
+        # 独立/配对检验在语义上要求 group2；单样本检验的 group2
+        # 仅为可选的假设均值（None 表 0）。各分支内断言以收敛类型
+        # （mypy 无法跨 if 条件传递收敛，故每个使用点分别断言）。
         if params.test_type == "independent":
+            assert group2 is not None, "独立样本 t 检验需要提供 group2"
             # 独立样本 t 检验
             stat, p = ttest_ind(group1, group2, equal_var=params.equal_var, alternative=params.alternative)
             df = len(group1) + len(group2) - 2 if params.equal_var else None
             n1, n2 = len(group1), len(group2)
             
         elif params.test_type == "paired":
+            assert group2 is not None, "配对 t 检验需要提供 group2"
             # 配对 t 检验
             stat, p = ttest_rel(group1, group2, alternative=params.alternative)
             df = len(group1) - 1
@@ -66,15 +71,18 @@ class StatisticalTestService:
 
         # 效应量
         if params.test_type in ["independent", "paired"]:
+            assert group2 is not None, f"{params.test_type} t 检验需要提供 group2"
             effect_size = StatisticalTestService._compute_effect_size(group1, group2, params.test_type)
         else:
             effect_size = (np.mean(group1) - (group2[0] if group2 is not None else 0)) / np.std(group1, ddof=1)
 
         # 置信区间
         if params.test_type == "independent":
+            assert group2 is not None, "独立样本 t 检验需要提供 group2"
             se = np.sqrt(np.var(group1, ddof=1)/len(group1) + np.var(group2, ddof=1)/len(group2))
             mean_diff = np.mean(group1) - np.mean(group2)
         elif params.test_type == "paired":
+            assert group2 is not None, "配对样本 t 检验需要提供 group2"
             diff = group1 - group2
             se = np.std(diff, ddof=1) / np.sqrt(len(diff))
             mean_diff = np.mean(diff)
@@ -135,10 +143,10 @@ class StatisticalTestService:
         
         if test_type == "paired":
             diff = group1 - group2
-            return np.mean(group1 - group2) / np.std(group1 - group2, ddof=1)
+            return float(np.mean(group1 - group2) / np.std(group1 - group2, ddof=1))
         else:
             pooled_std = np.sqrt(((n1-1)*np.var(group1, ddof=1) + (n2-1)*np.var(group2, ddof=1)) / (n1 + n2 - 2))
-            return (np.mean(group1) - np.mean(group2)) / pooled_std
+            return float((np.mean(group1) - np.mean(group2)) / pooled_std)
 
     @staticmethod
     def run_anova(
@@ -146,8 +154,8 @@ class StatisticalTestService:
         params: ANOVAParams,
         *,
         verbose: bool = False,
-        subject_ids: np.ndarray | list | None = None,
-    ) -> dict:
+        subject_ids: np.ndarray | list[str] | None = None,
+    ) -> dict[str, Any]:
         """运行方差分析
 
         one_way: 组间单因素（pingouin.anova）。
@@ -177,7 +185,7 @@ class StatisticalTestService:
             if n == 0:
                 raise ValueError("重复测量 ANOVA 需要每组至少 1 个样本")
             if subject_ids is None:
-                subjects = list(range(n))
+                subjects: list[Any] = list(range(n))
             else:
                 subjects = list(subject_ids)
                 if len(subjects) < n:
@@ -199,7 +207,7 @@ class StatisticalTestService:
                 f"未支持的 ANOVA 设计: {params.design}（当前支持 one_way / repeated）"
             )
 
-        return aov.to_dict()
+        return dict(aov.to_dict())
 
     @staticmethod
     def run_nonparametric(
@@ -209,7 +217,7 @@ class StatisticalTestService:
         *,
         verbose: bool = False,
         groups: list[np.ndarray] | None = None,
-    ) -> dict:
+    ) -> dict[str, Any]:
         """运行非参数检验
 
         两组检验（Mann-Whitney / Wilcoxon）使用 group1/group2；
@@ -252,7 +260,7 @@ def run_ttest(
     group1: np.ndarray,
     group2: np.ndarray | None,
     params: TTestParams,
-    **kwargs
+    **kwargs: Any
 ) -> TTestResult:
     return StatisticalTestService.run_ttest(group1, group2, params, **kwargs)
 
@@ -260,8 +268,8 @@ def run_ttest(
 def run_anova(
     groups: list[np.ndarray],
     params: ANOVAParams,
-    **kwargs
-) -> dict:
+    **kwargs: Any
+) -> dict[str, Any]:
     return StatisticalTestService.run_anova(groups, params, **kwargs)
 
 
@@ -269,6 +277,6 @@ def run_nonparametric(
     group1: np.ndarray,
     group2: np.ndarray | None,
     params: NonparametricParams,
-    **kwargs
-) -> dict:
+    **kwargs: Any
+) -> dict[str, Any]:
     return StatisticalTestService.run_nonparametric(group1, group2, params, **kwargs)

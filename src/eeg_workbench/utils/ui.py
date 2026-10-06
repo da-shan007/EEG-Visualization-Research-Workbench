@@ -20,7 +20,8 @@ from typing import Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDoubleSpinBox, QFormLayout, QScrollArea, QSpinBox, QWidget,
+    QComboBox, QDoubleSpinBox, QFormLayout, QScrollArea, QSpinBox, QTableWidget,
+    QTableWidgetItem, QWidget,
 )
 
 #: 数值型输入框最大宽度（像素）
@@ -84,7 +85,7 @@ def wrap_scroll(widget: QWidget) -> QScrollArea:
     return scroll
 
 
-def embed_figure(container_layout, fig, old_canvas_attr: str = "_fig_canvas"):
+def embed_figure(container_layout: Any, fig: Any, old_canvas_attr: str = "_fig_canvas") -> Any:
     """把 matplotlib Figure 嵌入 Qt 布局（替换旧画布并释放资源）。
 
     参数：
@@ -113,12 +114,26 @@ def embed_figure(container_layout, fig, old_canvas_attr: str = "_fig_canvas"):
         setattr(parent, old_canvas_attr, None)
     if fig is None:
         return None
-    canvas = FigureCanvasQTAgg(fig)
+    canvas = FigureCanvasQTAgg(fig)  # type: ignore[no-untyped-call]
     container_layout.addWidget(canvas)
-    canvas.draw_idle()
+    canvas.draw_idle()  # type: ignore[no-untyped-call]
     if parent is not None and old_canvas_attr:
         setattr(parent, old_canvas_attr, canvas)
     return canvas
+
+
+def require_table_item(table: QTableWidget, row: int, col: int) -> QTableWidgetItem:
+    """取表格单元；缺失时抛错而非返回 None。
+
+    背景：QTableWidget.item() 的类型是 ``QTableWidgetItem | None``，
+    各面板对自建行反复写 ``if item is None`` 是噪音。行由调用方自己
+    insertRow/setItem 建好时单元必存在，缺失即程序错误，大声失败。
+    调用方只需 ``require_table_item(tbl, r, c).text()`` 一行。
+    """
+    item = table.item(row, col)
+    if item is None:
+        raise RuntimeError(f"表格单元缺失: row={row}, col={col}")
+    return item
 
 
 def relay_status(panels: Iterable[Any], target: Any) -> None:

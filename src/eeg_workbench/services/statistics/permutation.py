@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 import time
 import numpy as np
+import numpy.typing as npt
 from scipy import stats
 from joblib import Parallel, delayed
 
@@ -40,7 +41,7 @@ class PermutationService:
         start_time = time.perf_counter()
 
         if statistic_func is None:
-            def statistic_func(g1, g2):
+            def statistic_func(g1: np.ndarray, g2: np.ndarray) -> Any:
                 stat, _ = stats.ttest_ind(g1, g2, equal_var=False)
                 return stat
 
@@ -99,7 +100,7 @@ class PermutationService:
         np.random.shuffle(combined)
         g1 = combined[:n1]
         g2 = combined[n1:]
-        return statistic_func(g1, g2)
+        return float(statistic_func(g1, g2))
 
     @staticmethod
     def run_cluster_permutation(
@@ -108,7 +109,7 @@ class PermutationService:
         *,
         channel_adjacency: np.ndarray | None = None,
         verbose: bool = False
-    ) -> dict:
+    ) -> dict[str, Any]:
         """簇置换检验 (用于时空数据)"""
         start_time = time.perf_counter()
 
@@ -124,6 +125,7 @@ class PermutationService:
             raise ValueError("数据必须是 2D 或 3D")
 
         # 计算观测统计量
+        t_obs: npt.NDArray[np.float64]
         if is_time:
             # 每个时间点做 t 检验
             t_obs = np.zeros((n_ch, n_times))
@@ -185,7 +187,7 @@ class PermutationService:
         threshold: float,
         adjacency: np.ndarray | None,
         is_time: bool
-    ) -> list[dict]:
+    ) -> list[dict[str, Any]]:
         """寻找簇"""
         clusters = []
         visited = np.zeros_like(t_map, dtype=bool)
@@ -217,10 +219,10 @@ class PermutationService:
     def _bfs_cluster(
         t_map: np.ndarray,
         visited: np.ndarray,
-        start: tuple,
+        start: tuple[int, ...],
         threshold: float,
         adjacency: np.ndarray | None
-    ) -> dict:
+    ) -> dict[str, Any]:
         """BFS 找簇"""
         from collections import deque
         queue = deque([start])
@@ -235,10 +237,10 @@ class PermutationService:
             cluster_points.append(pt)
             cluster_values.append(t_map[pt])
 
-            # 找邻居
+            # 找邻居（声明提升到分支外：两分支复用同名需同一声明）
+            neighbors: list[tuple[int, ...]] = []
             if len(start) == 2:  # (ch, time)
                 ch, t = pt
-                neighbors = []
                 if ch > 0: neighbors.append((ch-1, t))
                 if ch < t_map.shape[0]-1: neighbors.append((ch+1, t))
                 if t > 0: neighbors.append((ch, t-1))
@@ -248,7 +250,6 @@ class PermutationService:
                         neighbors.append((n_ch, t))
             else:  # (ch,)
                 ch = pt[0]
-                neighbors = []
                 if ch > 0: neighbors.append((ch-1,))
                 if ch < t_map.shape[0]-1: neighbors.append((ch+1,))
                 if adjacency is not None:
@@ -280,6 +281,7 @@ class PermutationService:
         perm_data = data * signs[:, np.newaxis] if data.ndim == 2 else data * signs[:, np.newaxis, np.newaxis]
 
         # 计算 t 统计量
+        t_map: npt.NDArray[np.float64]
         if is_time:
             n_ch, n_times = data.shape[1], data.shape[2]
             t_map = np.zeros((n_ch, n_times))
@@ -307,14 +309,14 @@ class PermutationService:
         else:
             cluster_stats = [np.sum(c["values"]) for c in clusters]
 
-        return max(cluster_stats)
+        return float(max(cluster_stats))
 
 
 def run_permutation_test(
     group1: np.ndarray,
     group2: np.ndarray,
     params: PermutationParams,
-    **kwargs
+    **kwargs: Any
 ) -> PermutationResult:
     return PermutationService.run_permutation_ttest(group1, group2, params)
 
@@ -322,6 +324,6 @@ def run_permutation_test(
 def run_cluster_permutation(
     data: np.ndarray,
     params: PermutationParams,
-    **kwargs
-) -> dict:
+    **kwargs: Any
+) -> dict[str, Any]:
     return PermutationService.run_cluster_permutation(data, params)

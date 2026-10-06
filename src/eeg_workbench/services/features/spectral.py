@@ -116,14 +116,14 @@ class SpectralService:
         )
 
     @staticmethod
-    def _resolve_picks(picks, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
+    def _resolve_picks(picks: list[str] | str | None, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
         """解析通道选择"""
         if picks is None:
             return None
         if isinstance(picks, str):
             if picks == "eeg":
                 return [i for i, ch in enumerate(ch_names)
-                        if dataset.channel_info.get(ch).type.value == "eeg"]
+                        if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eeg"]
             elif picks == "data":
                 return list(range(len(ch_names)))
             else:
@@ -265,13 +265,13 @@ class SpectralService:
 
     # ---- 便捷方法 ----
     @classmethod
-    def standard_bands(cls, dataset: EEGDataset, **kwargs) -> BandPowerResult:
+    def standard_bands(cls, dataset: EEGDataset, **kwargs: Any) -> BandPowerResult:
         """标准频段功率"""
         params = BandPowerParams(**kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def alpha_power(cls, dataset: EEGDataset, **kwargs) -> BandPowerResult:
+    def alpha_power(cls, dataset: EEGDataset, **kwargs: Any) -> BandPowerResult:
         """仅 Alpha 频段"""
         params = BandPowerParams(bands={"Alpha": (8, 13)}, **kwargs)
         return cls.compute(dataset, params)
@@ -280,6 +280,6 @@ class SpectralService:
 def compute_band_power(
     dataset: EEGDataset,
     params: BandPowerParams,
-    **kwargs
+    **kwargs: Any
 ) -> BandPowerResult:
     return SpectralService.compute(dataset, params, **kwargs)

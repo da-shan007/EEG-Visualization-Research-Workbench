@@ -1,5 +1,6 @@
 """报告生成面板"""
 from __future__ import annotations
+from eeg_workbench.models.dataset import EEGDataset
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
@@ -21,13 +22,13 @@ class ReportWidget(QWidget):
     status_message = Signal(str)
     params_changed = Signal()  # 报告参数变更（供上层感知，_on_param_changed 会 emit）
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -158,14 +159,14 @@ class ReportWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.report_params
         self._block_signals(True)
         try:
@@ -191,7 +192,7 @@ class ReportWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._edit_title, self._edit_author, self._edit_institution,
             self._cmb_format, self._chk_toc, self._chk_methods,
@@ -201,7 +202,7 @@ class ReportWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         sections = []
         for i in range(self._lst_sections.count()):
             item = self._lst_sections.item(i)
@@ -227,7 +228,7 @@ class ReportWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _load_template(self):
+    def _load_template(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(self, "加载模板", "", "HTML 模板 (*.html);;Jinja2 模板 (*.j2 *.jinja2)")
         if path:
@@ -235,12 +236,12 @@ class ReportWidget(QWidget):
             self.status_message.emit(f"已加载模板: {path}")
 
     @Slot()
-    def _preview_report(self):
+    def _preview_report(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "预览", "预览功能待实现")
 
     @Slot()
-    def _generate_report(self):
+    def _generate_report(self) -> None:
         self._on_param_changed()
         fmt = self._cmb_format.currentText().lower()
         self.status_message.emit(f"正在生成 {fmt.upper()} 报告...")

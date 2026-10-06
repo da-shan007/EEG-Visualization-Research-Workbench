@@ -57,8 +57,8 @@ class VisualizationViewModel(ViewModelBase):
         erp_vm: ERPViewModel,
         source_vm: SourceViewModel,
         stats_vm: StatisticsViewModel,
-        parent: QObject = None
-    ):
+        parent: Optional[QObject] = None
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._preproc_vm = preproc_vm
@@ -95,7 +95,7 @@ class VisualizationViewModel(ViewModelBase):
 
         # 结果缓存
         self._current_figure = None
-        self._processing_steps: list = []
+        self._processing_steps: list[VisualizationStepUI] = []
 
         self._data_vm.dataset_changed.connect(self._on_dataset_changed)
         self._preproc_vm.dataset_changed.connect(self._on_preproc_dataset_changed)
@@ -128,19 +128,19 @@ class VisualizationViewModel(ViewModelBase):
         return self._tfr_config
 
     @property
-    def connectivity_config(self):
+    def connectivity_config(self) -> ConnectivityPlotConfig:
         return self._connectivity_config
 
     @property
-    def stat_config(self):
+    def stat_config(self) -> StatisticalPlotConfig:
         return self._stat_config
 
     @property
-    def source_config(self):
+    def source_config(self) -> SourcePlotConfig:
         return self._source_config
 
     @property
-    def report_config(self):
+    def report_config(self) -> ReportConfig:
         return self._report_config
 
     @property
@@ -165,14 +165,14 @@ class VisualizationViewModel(ViewModelBase):
         return self._report_params
 
     @property
-    def inverse_result(self):
+    def inverse_result(self) -> Any:
         return self._inverse_result
 
     @property
-    def dipole_result(self):
+    def dipole_result(self) -> Any:
         return self._dipole_result
 
-    def set_tf_params(self, **kwargs):
+    def set_tf_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._tf_params, k):
                 setattr(self._tf_params, k, v)
@@ -185,76 +185,58 @@ class VisualizationViewModel(ViewModelBase):
             vmin=self._tf_params.vmin, vmax=self._tf_params.vmax,
         )
 
-    def set_conn_params(self, **kwargs):
+    def set_conn_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._conn_params, k):
                 setattr(self._conn_params, k, v)
 
-    def set_stat_params(self, **kwargs):
+    def set_stat_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._stat_params, k):
                 setattr(self._stat_params, k, v)
 
-    def set_report_params(self, **kwargs):
+    def set_report_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._report_params, k):
                 setattr(self._report_params, k, v)
 
     # ---- 参数设置 ----
-    def set_waveform_config(self, **kwargs):
+    def set_waveform_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._waveform_config, k):
                 setattr(self._waveform_config, k, v)
 
-    def set_spectral_config(self, **kwargs):
+    def set_spectral_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._spectral_config, k):
                 setattr(self._spectral_config, k, v)
 
-    def set_tfr_config(self, **kwargs):
+    def set_tfr_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._tfr_config, k):
                 setattr(self._tfr_config, k, v)
 
-    def set_connectivity_config(self, **kwargs):
+    def set_connectivity_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._connectivity_config, k):
                 setattr(self._connectivity_config, k, v)
 
-    def set_stat_config(self, **kwargs):
+    def set_stat_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._stat_config, k):
                 setattr(self._stat_config, k, v)
 
-    def set_source_config(self, **kwargs):
+    def set_source_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._source_config, k):
                 setattr(self._source_config, k, v)
 
-    def set_report_config(self, **kwargs):
+    def set_report_config(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._report_config, k):
                 setattr(self._report_config, k, v)
 
-    def apply_waveform_preset(self, preset: str):
-        self._waveform_config = create_plot_config("waveform", preset=preset)
-
-    def apply_spectral_preset(self, preset: str):
-        self._spectral_config = create_plot_config("spectral", preset=preset)
-
-    def apply_tfr_preset(self, preset: str):
-        self._tfr_config = create_plot_config("tfr", preset=preset)
-
-    def apply_connectivity_preset(self, preset: str):
-        self._connectivity_config = create_plot_config("connectivity", preset=preset)
-
-    def apply_stat_preset(self, preset: str):
-        self._stat_config = create_plot_config("statistical", preset=preset)
-
-    def apply_source_preset(self, preset: str):
-        self._source_config = create_plot_config("source", preset=preset)
-
-    def apply_report_preset(self, preset: str):
+    def apply_report_preset(self, preset: str) -> None:
         self._report_config = REPORT_PRESET
 
     # ---- 绘图执行 ----
@@ -386,18 +368,18 @@ class VisualizationViewModel(ViewModelBase):
             return False
 
     @Slot(object)
-    def _on_inverse_ready(self, result):
+    def _on_inverse_ready(self, result: Any) -> None:
         self._inverse_result = result
         self.inverse_solution_ready.emit(result)
 
     @Slot(object)
-    def _on_dipole_ready(self, result):
+    def _on_dipole_ready(self, result: Any) -> None:
         self._dipole_result = result
         self.dipole_fit_ready.emit(result)
 
     # ---- 导出 ----
     @staticmethod
-    def _resolve_format(fmt, path: str = "", default: ExportFormat = ExportFormat.PNG) -> ExportFormat:
+    def _resolve_format(fmt: ExportFormat | str, path: str = "", default: ExportFormat = ExportFormat.PNG) -> ExportFormat:
         """把字符串/枚举/文件路径统一解析为 ExportFormat"""
         if isinstance(fmt, ExportFormat):
             return fmt
@@ -438,7 +420,7 @@ class VisualizationViewModel(ViewModelBase):
             return False
 
     @async_slot
-    def export_data(self, data, path: str, format: str = "csv") -> bool:
+    def export_data(self, data: Any, path: str, format: str = "csv") -> bool:
         fmt = self._resolve_format(format, path, ExportFormat.CSV)
         try:
             self._export_service.export_data(data, path, fmt)
@@ -450,7 +432,7 @@ class VisualizationViewModel(ViewModelBase):
             return False
 
     @async_slot
-    def generate_report(self, format: str = "pdf", path: str = "", config=None) -> bool:
+    def generate_report(self, format: str = "pdf", path: str = "", config: ReportConfig | None = None) -> bool:
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
             return False
@@ -472,14 +454,14 @@ class VisualizationViewModel(ViewModelBase):
             return False
 
     # ---- 内部方法 ----
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self._dataset = dataset
         if dataset:
             self._notify_available_channels()
         # 转发给本模块 View（View 只订阅此处的信号，不订阅 data_vm）
         self.dataset_changed.emit(dataset)
 
-    def _on_preproc_dataset_changed(self, dataset):
+    def _on_preproc_dataset_changed(self, dataset: EEGDataset | None) -> None:
         # 预处理后的数据集优先用于可视化（与 features/source/statistics 一致）
         if dataset:
             self._dataset = dataset
@@ -487,16 +469,10 @@ class VisualizationViewModel(ViewModelBase):
             # 转发给本模块 View（View 只订阅此处的信号，不订阅 data_vm/preproc_vm）
             self.dataset_changed.emit(dataset)
 
-    def _notify_available_channels(self):
+    def _notify_available_channels(self) -> None:
         self.available_channels_changed.emit(self.eeg_channels)
 
-    def _add_step(self, name: str, desc: str, time_ms: float = 0):
-        step = {
-            "name": name,
-            "description": desc,
-            "completed": True,
-            "processing_time_ms": time_ms
-        }
+    def _add_step(self, name: str, desc: str, time_ms: float = 0) -> None:
         self._processing_steps.append(
             VisualizationStepUI(name=name, description=desc, completed=True, processing_time_ms=time_ms)
         )

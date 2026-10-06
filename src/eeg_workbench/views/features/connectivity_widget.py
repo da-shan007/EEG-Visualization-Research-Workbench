@@ -1,6 +1,7 @@
 """连通性分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class ConnectivityWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -145,22 +146,22 @@ class ConnectivityWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.connectivity_result.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_method_changed(self, method: str):
+    def _on_method_changed(self, method: str) -> None:
         # 显示/隐藏方法特定参数
         is_gca = method in ("gca", "dtf", "pdc")
         is_phase = method in ("plv", "pli", "wpli")
         self._gca_group.setVisible(is_gca)
         self._phase_group.setVisible(is_phase)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.conn_params
         self._block_signals(True)
         try:
@@ -177,7 +178,7 @@ class ConnectivityWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_fmin, self._spin_fmax,
             self._spin_n_freqs, self._spin_gca_order, self._spin_gca_nfft,
@@ -186,7 +187,7 @@ class ConnectivityWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ConnectivityParams(
             method=ConnectivityMethod(self._cmb_method.currentText()),
             fmin=self._spin_fmin.value(),
@@ -203,15 +204,15 @@ class ConnectivityWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_connectivity(self):
+    def _run_connectivity(self) -> None:
         self._vm.run_connectivity()
 
     @Slot()
-    def _run_from_epochs(self):
+    def _run_from_epochs(self) -> None:
         self.status_message.emit("请先定义事件和 Epochs 参数")
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         if result and result.connectivity is not None:
             shape = result.connectivity.shape
             self.status_message.emit(f"连通性计算完成: {shape}")

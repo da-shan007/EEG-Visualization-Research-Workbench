@@ -1,23 +1,13 @@
 """ERP 峰值检测服务"""
 from __future__ import annotations
-from dataclasses import dataclass
 from typing import Any, Optional
 import numpy as np
 from scipy.signal import find_peaks
 
-from eeg_workbench.models.erp import ERPComponent, DEFAULT_ERP_PEAK_WINDOWS, DEFAULT_ERP_POLARITY
-
-
-@dataclass
-class PeakResult:
-    """峰值检测结果"""
-    component: ERPComponent
-    latency: float          # 峰值潜伏期 (秒)
-    amplitude: float        # 峰值幅度 (µV)
-    channel: str            # 峰值通道
-    polarity: str           # "positive" / "negative"
-    time_window: tuple[float, float]
-    all_candidates: list[dict] = None  # 所有候选峰值
+from eeg_workbench.models.erp import (
+    ERPComponent, DEFAULT_ERP_PEAK_WINDOWS, DEFAULT_ERP_POLARITY,
+    PeakPolarity, PeakResult,
+)
 
 
 class PeakDetector:
@@ -26,16 +16,16 @@ class PeakDetector:
     def __init__(
         self,
         peak_windows: dict[ERPComponent, tuple[float, float]] | None = None,
-        polarities: dict[ERPComponent, str] | None = None,
+        polarities: dict[ERPComponent, PeakPolarity] | None = None,
         min_peak_distance: float = 0.02  # 秒
-    ):
+    ) -> None:
         self.peak_windows = peak_windows or DEFAULT_ERP_PEAK_WINDOWS
         self.polarities = polarities or DEFAULT_ERP_POLARITY
         self.min_peak_distance = min_peak_distance
 
     def detect(
         self,
-        evoked,
+        evoked: Any,
         components: list[ERPComponent] | None = None
     ) -> dict[ERPComponent, PeakResult]:
         """检测 ERP 峰值
@@ -63,7 +53,7 @@ class PeakDetector:
 
     def _detect_component(
         self,
-        evoked,
+        evoked: Any,
         data: np.ndarray,  # (n_ch, n_times) µV
         times: np.ndarray,
         ch_names: list[str],
@@ -105,9 +95,9 @@ class PeakDetector:
                         best_value = ch_data[p_idx]
                         best_peak = PeakResult(
                             component=component,
-                            latency=candidate["latency"],
-                            amplitude=candidate["amplitude"],
-                            channel=candidate["channel"],
+                            latency=float(candidate["latency"]),
+                            amplitude=float(candidate["amplitude"]),
+                            channel=str(candidate["channel"]),
                             polarity="positive",
                             time_window=(tmin, tmax),
                             all_candidates=all_candidates
@@ -131,9 +121,9 @@ class PeakDetector:
                         best_value = ch_data[p_idx]
                         best_peak = PeakResult(
                             component=component,
-                            latency=candidate["latency"],
-                            amplitude=candidate["amplitude"],
-                            channel=candidate["channel"],
+                            latency=float(candidate["latency"]),
+                            amplitude=float(candidate["amplitude"]),
+                            channel=str(candidate["channel"]),
                             polarity="negative",
                             time_window=(tmin, tmax),
                             all_candidates=all_candidates
@@ -143,9 +133,9 @@ class PeakDetector:
 
     def detect_custom(
         self,
-        evoked,
+        evoked: Any,
         time_window: tuple[float, float],
-        polarity: str = "both",
+        polarity: PeakPolarity = "both",
         component_name: str = "custom"
     ) -> Optional[PeakResult]:
         """自定义时间窗口峰值检测"""
@@ -193,9 +183,9 @@ class PeakDetector:
 
 
 def detect_erp_peaks(
-    evoked,
+    evoked: Any,
     components: list[ERPComponent] | None = None,
-    **kwargs
+    **kwargs: Any
 ) -> dict[ERPComponent, PeakResult]:
     """函数式接口"""
     detector = PeakDetector(**kwargs)

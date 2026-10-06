@@ -1,6 +1,7 @@
 """ERP 峰值检测与结果显示面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Optional, cast
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -11,8 +12,8 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
-from eeg_workbench.models.erp import ERPComponent, PeakResult
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.models.erp import ERPComponent, PeakPolarity
+from eeg_workbench.utils.ui import balance_form, require_table_item
 
 
 class ERPPeakWidget(QWidget):
@@ -20,14 +21,14 @@ class ERPPeakWidget(QWidget):
 
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
-        self._peak_results: dict = {}
+        self._peak_results: dict[str, Any] = {}
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
@@ -159,32 +160,32 @@ class ERPPeakWidget(QWidget):
         splitter.setSizes([600, 400])
         layout.addWidget(splitter, 1)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.peaks_detected.connect(self._on_peaks_detected)
         self._vm.erp_result.connect(self._on_erp_result)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
             self._update_condition_combo()
 
-    def _on_erp_result(self, result):
+    def _on_erp_result(self, result: Any) -> None:
         self._update_condition_combo()
 
-    def _update_condition_combo(self):
+    def _update_condition_combo(self) -> None:
         self._cmb_condition.clear()
         if self._vm._erp_result:
             for cond in self._vm._erp_result.result.evokeds.keys():
                 self._cmb_condition.addItem(cond)
 
     @Slot()
-    def _run_detection(self):
+    def _run_detection(self) -> None:
         self._vm.run_peak_detection()
 
     @Slot(dict)
-    def _on_peaks_detected(self, peaks: dict):
+    def _on_peaks_detected(self, peaks: dict[str, Any]) -> None:
         """更新峰值表格"""
         self._peak_table.setRowCount(0)
         row = 0
@@ -203,41 +204,41 @@ class ERPPeakWidget(QWidget):
         self._lbl_status.setStyleSheet("color: #27ae60; font-weight: bold;")
 
     @Slot()
-    def _custom_detection(self):
+    def _custom_detection(self) -> None:
         # 打开自定义对话框
         self._run_custom_detection()
 
     @Slot()
-    def _run_custom_detection(self):
+    def _run_custom_detection(self) -> None:
         cond = self._cmb_condition.currentText()
         if not cond:
             return
         tmin = self._custom_time_min.value()
         tmax = self._custom_time_max.value()
-        polarity = self._cmb_custom_polarity.currentText()
+        polarity = cast(PeakPolarity, self._cmb_custom_polarity.currentText())
         
         result = self._vm.run_custom_peak_detection(cond, (tmin, tmax), polarity)
         if result:
             self.status_message.emit(f"自定义检测: {result.component.value} @ {result.latency*1000:.1f}ms")
 
     @Slot()
-    def _plot_selected_topomap(self):
+    def _plot_selected_topomap(self) -> None:
         rows = self._peak_table.selectionModel().selectedRows()
         if not rows or not self._vm._erp_result:
             return
         row = rows[0].row()
-        cond = self._peak_table.item(row, 0).text()
-        comp_str = self._peak_table.item(row, 1).text()
-        latency = float(self._peak_table.item(row, 2).text()) / 1000
+        cond = require_table_item(self._peak_table, row, 0).text()
+        comp_str = require_table_item(self._peak_table, row, 1).text()
+        latency = float(require_table_item(self._peak_table, row, 2).text()) / 1000
         self._vm.generate_topomap(cond, latency)
         self._vm.plot_topomaps(times=[latency], condition=cond)
 
     @Slot()
-    def _plot_joint(self):
+    def _plot_joint(self) -> None:
         self._vm.plot_joint()
 
     @Slot()
-    def _plot_all_topomaps(self):
+    def _plot_all_topomaps(self) -> None:
         if not self._vm._erp_result:
             return
         times = []

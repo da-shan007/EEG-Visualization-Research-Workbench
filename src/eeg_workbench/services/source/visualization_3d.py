@@ -26,7 +26,7 @@ class BrainPlotData:
     
     # 显示选项
     hemi: str = "both"  # 'lh', 'rh', 'both', 'split'
-    views: list[str] = None  # ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral']
+    views: list[str] | None = None  # ['lateral', 'medial', 'rostral', 'caudal', 'dorsal', 'ventral']
     background: str = "white"
     cortex: str = "classic"  # 'classic', 'bone', 'low_contrast', 'high_contrast'
     size: tuple[int, int] = (800, 600)
@@ -39,16 +39,16 @@ class BrainPlotData:
 class SourceVisualization3D:
     """3D 源可视化服务"""
 
-    def __init__(self):
-        self._brain = None
-        self._fig = None
+    def __init__(self) -> None:
+        self._brain: Any = None
+        self._fig: Any = None
 
     def plot_source_estimate(
         self,
-        stc,
+        stc: Any,
         subject: str = "fsaverage",
         subjects_dir: str | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> BrainPlotData:
         """绘制源估计 (使用 MNE/PyVista)"""
         try:
@@ -99,10 +99,10 @@ class SourceVisualization3D:
 
     def plot_topomap_3d(
         self,
-        evoked,
+        evoked: Any,
         time_point: float,
-        **kwargs
-    ) -> dict:
+        **kwargs: Any
+    ) -> dict[str, Any]:
         """绘制 3D 地形图"""
         try:
             import mne
@@ -122,12 +122,12 @@ class SourceVisualization3D:
 
     def plot_connectivity_3d(
         self,
-        con,
-        stc_vertices,
-        stc_faces,
+        con: Any,
+        stc_vertices: Any,
+        stc_faces: Any,
         threshold: float = 0.5,
-        **kwargs
-    ) -> dict:
+        **kwargs: Any
+    ) -> dict[str, Any]:
         """绘制 3D 连通性 (节点+边)"""
         # con: (n_nodes, n_nodes) 连通性矩阵
         # 只显示大于阈值的连接
@@ -143,10 +143,10 @@ class SourceVisualization3D:
 
     def plot_dipoles_3d(
         self,
-        dipoles: list[dict],
+        dipoles: list[dict[str, Any]],
         subject: str = "fsaverage",
-        **kwargs
-    ) -> dict:
+        **kwargs: Any
+    ) -> dict[str, Any]:
         """绘制 3D 偶极子位置和朝向"""
         try:
             import mne
@@ -172,7 +172,7 @@ class SourceVisualization3D:
 
         return {"dipoles": dipoles}
 
-    def export_scene(self, filepath: str, format: str = "html"):
+    def export_scene(self, filepath: str, format: str = "html") -> None:
         """导出 3D 场景"""
         if hasattr(self, '_brain') and self._brain:
             if format == "html":
@@ -213,7 +213,7 @@ class SourceVisualization3D:
         if method == "nearest":
             tree = cKDTree(src_vertices)
             _, idx = tree.query(target_vertices)
-            return data[idx]
+            return np.asarray(data[idx])
         elif method in ("linear", "cubic"):
             from scipy.interpolate import griddata
 
@@ -223,7 +223,7 @@ class SourceVisualization3D:
                 tree = cKDTree(src_vertices)
                 _, idx = tree.query(target_vertices[nan_mask])
                 values[nan_mask] = data[idx]
-            return values
+            return np.asarray(values)
         else:
             raise ValueError(
                 f"不支持的插值方法: {method}（支持 nearest / linear / cubic）"
@@ -232,8 +232,8 @@ class SourceVisualization3D:
     @staticmethod
     def create_montage_visualization(
         montage: Montage,
-        **kwargs
-    ) -> dict:
+        **kwargs: Any
+    ) -> dict[str, Any]:
         """创建电极蒙版 3D 可视化"""
         positions = np.array(list(montage.positions.values()))
         ch_names = list(montage.positions.keys())
@@ -248,7 +248,7 @@ class SourceVisualization3D:
 
 
 def plot_source_estimate(
-    stc, subject: str = "fsaverage", **kwargs
+    stc: Any, subject: str = "fsaverage", **kwargs: Any
 ) -> BrainPlotData:
     """函数式接口"""
     viz = SourceVisualization3D()

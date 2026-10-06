@@ -1,6 +1,7 @@
 """频谱图面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
-from eeg_workbench.models.visualization import SpectralPlotConfig
+from eeg_workbench.models.visualization import SpectralPlotConfig, XScale, SpectralMethod
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -21,13 +22,13 @@ class SpectralWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -131,10 +132,10 @@ class SpectralWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
@@ -154,8 +155,8 @@ class SpectralWidget(QWidget):
         return SpectralPlotConfig(
             fmin=self._spin_fmin.value(),
             fmax=self._spin_fmax.value(),
-            xscale=self._cmb_xscale.currentText(),
-            method=self._cmb_method.currentText(),
+            xscale=cast(XScale, self._cmb_xscale.currentText()),
+            method=cast(SpectralMethod, self._cmb_method.currentText()),
             n_fft=self._spin_n_fft.value(),
             n_overlap=self._spin_overlap.value(),
             show_confidence=self._chk_confidence.isChecked(),
@@ -166,13 +167,13 @@ class SpectralWidget(QWidget):
         )
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         cfg = self._collect_config()
         self._vm.set_spectral_config(**cfg.__dict__)
         self.params_changed.emit()
 
     @Slot()
-    def _plot_spectral(self):
+    def _plot_spectral(self) -> None:
         if self._vm.dataset is None:
             self.status_message.emit("请先加载数据集")
             return
@@ -185,7 +186,7 @@ class SpectralWidget(QWidget):
         self._vm.plot_spectral()
 
     @Slot()
-    def _export_figure(self):
+    def _export_figure(self) -> None:
         if self._vm.dataset is None:
             self.status_message.emit("请先加载数据集")
             return

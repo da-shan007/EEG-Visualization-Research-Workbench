@@ -1,6 +1,6 @@
 """统计分析主面板：整合 t检验、ANOVA、非参数、置换、相关性、校正、效应量"""
 from __future__ import annotations
-from typing import Optional
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -27,14 +27,14 @@ class StatisticsMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -103,7 +103,7 @@ class StatisticsMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _create_preset_menu(self):
+    def _create_preset_menu(self) -> QMenu:
         menu = QMenu(self)
         
         designs = [
@@ -119,7 +119,7 @@ class StatisticsMainWidget(QWidget):
         
         return menu
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.ttest_result.connect(self._on_ttest_result)
         self._vm.anova_result.connect(self._on_anova_result)
@@ -138,7 +138,7 @@ class StatisticsMainWidget(QWidget):
         )
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -155,41 +155,41 @@ class StatisticsMainWidget(QWidget):
         self.dataset_changed.emit(dataset)
 
     @Slot()
-    def _apply_preset(self, design: str):
+    def _apply_preset(self, design: str) -> None:
         self._vm.apply_preset(design)
         self.status_message.emit(f"已应用预设: {design}")
 
     @Slot(object)
-    def _on_ttest_result(self, result):
+    def _on_ttest_result(self, result: Any) -> None:
         self._add_history(f"T检验: p={result.p_value:.4f}, d={result.effect_size:.3f}" if result.effect_size else f"T检验: p={result.p_value:.4f}")
 
     @Slot(object)
-    def _on_anova_result(self, result):
+    def _on_anova_result(self, result: Any) -> None:
         self._add_history(f"ANOVA 完成")
 
     @Slot(object)
-    def _on_permutation_result(self, result):
+    def _on_permutation_result(self, result: Any) -> None:
         self._add_history(f"置换检验: p={result.result.p_value:.4f}")
 
     @Slot(object)
-    def _on_correlation_result(self, result):
+    def _on_correlation_result(self, result: Any) -> None:
         self._add_history(f"相关性: {len(result.results)} 对变量")
 
     @Slot(object)
-    def _on_correction_result(self, result):
+    def _on_correction_result(self, result: Any) -> None:
         self._add_history(f"多重校正: {sum(result['rejected'])}/{len(result['rejected'])} 显著")
 
     @Slot(object)
-    def _on_effect_size_result(self, result):
+    def _on_effect_size_result(self, result: Any) -> None:
         if result:
             self._add_history(f"效应量: {result['effect_size_type']}={result['value']:.3f} ({result['interpretation']})")
 
-    def _add_history(self, desc: str):
+    def _add_history(self, desc: str) -> None:
         item = QListWidgetItem(f"✓ {desc}")
         self._history_list.addItem(item)
 
     @Slot(list)
-    def _update_history(self, steps: list):
+    def _update_history(self, steps: list[Any]) -> None:
         """从 ViewModel 的处理步骤列表刷新历史"""
         if not steps:
             return
@@ -204,12 +204,12 @@ class StatisticsMainWidget(QWidget):
                 self._add_history(f"{name}: {desc}{suffix}")
 
     @Slot()
-    def _export_results(self):
+    def _export_results(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出统计结果", "", "NPZ 文件 (*.npz);;CSV 文件 (*.csv);;JSON 文件 (*.json)")
         if path:
             self.status_message.emit(f"导出功能待实现: {path}")
 
     @Slot()
-    def _clear_history(self):
+    def _clear_history(self) -> None:
         self._history_list.clear()

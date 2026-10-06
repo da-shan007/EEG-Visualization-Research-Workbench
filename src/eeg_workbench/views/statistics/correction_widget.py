@@ -1,6 +1,7 @@
 """多重比较校正面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 import numpy as np
 
@@ -23,13 +24,13 @@ class CorrectionWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -121,37 +122,37 @@ class CorrectionWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         pass
 
-    def _add_p_row(self):
+    def _add_p_row(self) -> None:
         row = self._p_table.rowCount()
         self._p_table.insertRow(row)
         self._p_table.setItem(row, 0, QTableWidgetItem(f"Test{row+1}"))
         self._p_table.setItem(row, 1, QTableWidgetItem("0.05"))
         self._p_table.setItem(row, 2, QTableWidgetItem(""))
 
-    def _remove_p_row(self):
+    def _remove_p_row(self) -> None:
         rows = sorted(set(item.row() for item in self._p_table.selectedItems()), reverse=True)
         for row in rows:
             self._p_table.removeRow(row)
 
-    def _clear_p_table(self):
+    def _clear_p_table(self) -> None:
         self._p_table.setRowCount(0)
 
-    def _import_from_results(self):
+    def _import_from_results(self) -> None:
         # 从之前的统计结果导入 p 值
         self.status_message.emit("从结果导入功能待实现")
 
     @Slot()
-    def _run_correction(self):
+    def _run_correction(self) -> None:
         p_values = []
         names = []
         for row in range(self._p_table.rowCount()):
@@ -174,7 +175,7 @@ class CorrectionWidget(QWidget):
             self._display_result(names, p_values, result)
             self.status_message.emit(f"校正完成: {sum(result['rejected'])}/{len(p_values)} 显著")
 
-    def _display_result(self, names, p_values, result):
+    def _display_result(self, names: list[str], p_values: list[float], result: dict[str, Any]) -> None:
         self._result_table.setRowCount(len(names))
         for i, name in enumerate(names):
             self._result_table.setItem(i, 0, QTableWidgetItem(name))
@@ -184,6 +185,6 @@ class CorrectionWidget(QWidget):
             self._result_table.setItem(i, 4, QTableWidgetItem("是" if result['rejected'][i] else "否"))
 
     @Slot()
-    def _batch_correct(self):
+    def _batch_correct(self) -> None:
         # 批量校正所有之前的统计结果
         self.status_message.emit("批量校正功能待实现")

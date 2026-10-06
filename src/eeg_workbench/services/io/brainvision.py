@@ -10,7 +10,7 @@ class BrainVisionReader(BaseReader):
     EXTENSIONS = (".vhdr", ".vmrk", ".eeg")
     FORMAT_NAME = "BrainVision"
 
-    def read(self, file_path: str, **kwargs) -> LoadResult:
+    def read(self, file_path: str, **kwargs: Any) -> LoadResult:
         import mne
 
         # BrainVision 以 .vhdr 为主入口

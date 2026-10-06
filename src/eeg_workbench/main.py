@@ -1,7 +1,7 @@
 """主窗口：整合所有模块的顶层 UI"""
 from __future__ import annotations
 import sys
-from typing import Optional
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot, Qt, QTimer, QSettings
 from PySide6.QtWidgets import (
@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction, QIcon, QKeySequence, QCloseEvent
 
 from eeg_workbench.utils.ui import wrap_scroll
-from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
+from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel, FileLoadProgress
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
@@ -29,6 +29,7 @@ from eeg_workbench.views.erp import ERPMainWidget
 from eeg_workbench.views.source import SourceMainWidget
 from eeg_workbench.views.statistics import StatisticsMainWidget
 from eeg_workbench.views.visualization import VisualizationMainWidget
+from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.core.config import get_config_manager
 from eeg_workbench.core.events import get_event_bus, EventType
 
@@ -36,7 +37,7 @@ from eeg_workbench.core.events import get_event_bus, EventType
 class MainWindow(QMainWindow):
     """EEG Workbench 主窗口"""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("MainWindow")
         self.setWindowTitle("EEG Visualization Research Workbench")
@@ -74,7 +75,7 @@ class MainWindow(QMainWindow):
         # 欢迎页
         self._show_welcome()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         # 中央部件：标签页容器
         self._central_tabs = QTabWidget()
         self._central_tabs.setTabsClosable(False)
@@ -95,7 +96,7 @@ class MainWindow(QMainWindow):
         # 侧边栏：数据集加载器 (可停靠)
         self._create_loader_dock()
 
-    def _create_data_management_tab(self):
+    def _create_data_management_tab(self) -> None:
         """创建数据管理主标签页：元数据 | 事件 | 裁剪拼接"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
@@ -134,40 +135,40 @@ class MainWindow(QMainWindow):
 
         self._central_tabs.addTab(tab, "数据管理")
 
-    def _create_preprocessing_tab(self):
+    def _create_preprocessing_tab(self) -> None:
         """创建信号预处理标签页"""
         self._preproc_widget = PreprocessingMainWidget(self._preproc_vm)
         self._central_tabs.addTab(self._preproc_widget, "信号预处理")
 
-    def _create_features_tab(self):
+    def _create_features_tab(self) -> None:
         """创建特征提取标签页"""
         self._features_widget = FeaturesMainWidget(self._features_vm)
         self._central_tabs.addTab(self._features_widget, "特征提取")
 
-    def _create_erp_tab(self):
+    def _create_erp_tab(self) -> None:
         """创建 ERP/ERD/ERS 标签页"""
         self._erp_widget = ERPMainWidget(self._erp_vm)
         self._central_tabs.addTab(self._erp_widget, "ERP/ERD/ERS")
 
-    def _create_source_tab(self):
+    def _create_source_tab(self) -> None:
         """创建源定位与脑区分析标签页"""
         self._source_widget = SourceMainWidget(self._source_vm)
         self._central_tabs.addTab(self._source_widget, "源定位")
 
-    def _create_statistics_tab(self):
+    def _create_statistics_tab(self) -> None:
         """创建统计与对比标签页"""
         self._stats_widget = StatisticsMainWidget(self._stats_vm)
         self._central_tabs.addTab(self._stats_widget, "统计分析")
 
-    def _create_visualization_tab(self):
+    def _create_visualization_tab(self) -> None:
         """创建可视化与报告标签页"""
         self._viz_widget = VisualizationMainWidget(self._viz_vm)
         self._central_tabs.addTab(self._viz_widget, "可视化与报告")
 
         # 占位：后续模块的标签页
-        self._placeholder_tabs = {}
+        self._placeholder_tabs: dict[str, QWidget] = {}
 
-    def _create_loader_dock(self):
+    def _create_loader_dock(self) -> None:
         """创建可停靠的数据加载面板"""
         dock = QDockWidget("数据加载", self)
         dock.setObjectName("loaderDock")
@@ -184,7 +185,7 @@ class MainWindow(QMainWindow):
         self._act_toggle_loader = dock.toggleViewAction()
         self._act_toggle_loader.setShortcut(QKeySequence("Ctrl+L"))
 
-    def _setup_menu_bar(self):
+    def _setup_menu_bar(self) -> None:
         mb = self.menuBar()
 
         # 文件菜单
@@ -274,7 +275,7 @@ class MainWindow(QMainWindow):
         act_about.triggered.connect(self._show_about)
         help_menu.addAction(act_about)
 
-    def _setup_toolbar(self):
+    def _setup_toolbar(self) -> None:
         tb = QToolBar("主工具栏")
         tb.setObjectName("mainToolBar")
         tb.setMovable(False)
@@ -329,7 +330,7 @@ class MainWindow(QMainWindow):
         act.triggered.connect(lambda: self._switch_to_tab("可视化与报告"))
         tb.addAction(act)
 
-    def _setup_status_bar(self):
+    def _setup_status_bar(self) -> None:
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
 
@@ -347,7 +348,7 @@ class MainWindow(QMainWindow):
         self._lbl_perf = QLabel("")
         self._status_bar.addPermanentWidget(self._lbl_perf)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         # ViewModel 信号
         self._data_vm.dataset_changed.connect(self._on_dataset_changed)
         self._data_vm.dataset_info_changed.connect(self._on_info_changed)
@@ -373,7 +374,7 @@ class MainWindow(QMainWindow):
 
     # ---- 槽函数 ----
     @Slot(object)
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         if dataset:
             self._info_bar.setText(
                 f"<b>{dataset.name}</b>  |  "
@@ -388,18 +389,18 @@ class MainWindow(QMainWindow):
             self.setWindowTitle("EEG Visualization Research Workbench")
 
     @Slot(str)
-    def _on_info_changed(self, info: str):
+    def _on_info_changed(self, info: str) -> None:
         self._info_bar.setText(info)
 
     @Slot(str)
-    def _on_status_message(self, msg: str):
+    def _on_status_message(self, msg: str) -> None:
         self._lbl_status.setText(msg)
         # 3秒后自动清除非持久消息
         if not msg.startswith("已"):
             QTimer.singleShot(3000, lambda: self._lbl_status.setText("就绪") if self._lbl_status.text() == msg else None)
 
     @Slot(object)
-    def _on_loading_progress(self, progress):
+    def _on_loading_progress(self, progress: FileLoadProgress) -> None:
         self._progress_bar.setVisible(True)
         self._progress_bar.setRange(0, progress.total)
         self._progress_bar.setValue(progress.current)
@@ -410,15 +411,17 @@ class MainWindow(QMainWindow):
             self._progress_bar.setStyleSheet("QProgressBar::chunk { background: #e74c3c; }")
 
     @Slot(float, str)
-    def _on_waveform_marker_request(self, time: float, desc: str):
+    def _on_waveform_marker_request(self, time: float, desc: str) -> None:
         self._lbl_status.setText(f"波形标记请求: {desc} @ {time:.3f}s")
+        if self._viz_widget is None:
+            return
         viz_index = self._central_tabs.indexOf(self._viz_widget)
         if viz_index >= 0:
             self._central_tabs.setCurrentIndex(viz_index)
         self._viz_widget.show_waveform_marker(time, desc)
 
     # ---- 菜单动作 ----
-    def _new_dataset(self):
+    def _new_dataset(self) -> None:
         if self._data_vm.dataset and self._data_vm.dataset.is_dirty:
             reply = QMessageBox.question(
                 self, "未保存的更改",
@@ -430,7 +433,7 @@ class MainWindow(QMainWindow):
                 return
         self._data_vm.close_dataset()
 
-    def _save_dataset(self):
+    def _save_dataset(self) -> None:
         if not self._data_vm.dataset:
             QMessageBox.information(self, "提示", "没有数据可保存")
             return
@@ -439,7 +442,7 @@ class MainWindow(QMainWindow):
         else:
             self._save_dataset_as()
 
-    def _save_dataset_as(self):
+    def _save_dataset_as(self) -> None:
         if not self._data_vm.dataset:
             return
         filters = "EDF 文件 (*.edf);;EEGLAB (*.set);;CSV (*.csv);;TSV (*.tsv)"
@@ -454,7 +457,7 @@ class MainWindow(QMainWindow):
                 fmt = "tsv"
             self._data_vm.save_dataset(path, format=fmt)
 
-    def _update_recent_menu(self):
+    def _update_recent_menu(self) -> None:
         self._recent_menu.clear()
         files = self._data_vm._config_mgr.config.recent_files
         if not files:
@@ -469,7 +472,7 @@ class MainWindow(QMainWindow):
             act.triggered.connect(lambda checked, p=f: self._loader_widget._load_file(p) if self._loader_widget else None)
             self._recent_menu.addAction(act)
 
-    def _switch_to_tab(self, tab_name: str):
+    def _switch_to_tab(self, tab_name: str) -> None:
         """切换到指定标签页"""
         for i in range(self._central_tabs.count()):
             if self._central_tabs.tabText(i) == tab_name:
@@ -478,7 +481,7 @@ class MainWindow(QMainWindow):
         # 如果找不到，显示占位页
         self._show_placeholder(tab_name)
 
-    def _show_placeholder(self, module_name: str):
+    def _show_placeholder(self, module_name: str) -> None:
         """显示未实现模块的占位标签页"""
         if module_name not in self._placeholder_tabs:
             widget = QWidget()
@@ -491,7 +494,7 @@ class MainWindow(QMainWindow):
             self._central_tabs.addTab(widget, module_name)
         self._central_tabs.setCurrentWidget(self._placeholder_tabs[module_name])
 
-    def _show_welcome(self):
+    def _show_welcome(self) -> None:
         """显示欢迎页面"""
         welcome = QWidget()
         layout = QVBoxLayout(welcome)
@@ -521,7 +524,7 @@ class MainWindow(QMainWindow):
         self._central_tabs.addTab(welcome, "欢迎")
         self._central_tabs.setCurrentWidget(welcome)
 
-    def _show_about(self):
+    def _show_about(self) -> None:
         QMessageBox.about(self, "关于 EEG Workbench",
             "<h3>EEG Visualization Research Workbench v0.1</h3>"
             "<p>脑电数据可视化与分析工作台</p>"
@@ -529,17 +532,19 @@ class MainWindow(QMainWindow):
             "<p>© 2024 Research Team</p>"
         )
 
-    def _restore_settings(self):
+    def _restore_settings(self) -> None:
         settings = QSettings("EEGWorkbench", "MainWindow")
-        self.restoreGeometry(settings.value("geometry", b""))
-        self.restoreState(settings.value("windowState", b""))
+        # QSettings.value 存取的是 saveGeometry/saveState 写下的字节，
+        # stubs 把返回值标成 object，此处用 cast 收敛（运行时确为字节）。
+        self.restoreGeometry(cast(bytes, settings.value("geometry", b"")))
+        self.restoreState(cast(bytes, settings.value("windowState", b"")))
 
-    def _save_settings(self):
+    def _save_settings(self) -> None:
         settings = QSettings("EEGWorkbench", "MainWindow")
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("windowState", self.saveState())
 
-    def closeEvent(self, event: QCloseEvent):
+    def closeEvent(self, event: QCloseEvent) -> None:
         if self._data_vm.dataset and self._data_vm.dataset.is_dirty:
             reply = QMessageBox.question(
                 self, "退出确认",
@@ -556,7 +561,7 @@ class MainWindow(QMainWindow):
         super().closeEvent(event)
 
 
-def main():
+def main() -> int:
     """程序入口"""
     import os
 

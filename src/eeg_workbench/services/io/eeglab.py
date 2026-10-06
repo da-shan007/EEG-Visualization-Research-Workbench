@@ -10,7 +10,7 @@ class EEGLABReader(BaseReader):
     EXTENSIONS = (".set",)
     FORMAT_NAME = "EEGLAB"
 
-    def read(self, file_path: str, **kwargs) -> LoadResult:
+    def read(self, file_path: str, **kwargs: Any) -> LoadResult:
         import mne
 
         preload = kwargs.get("preload", True)

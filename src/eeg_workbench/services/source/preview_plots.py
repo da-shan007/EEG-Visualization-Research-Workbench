@@ -8,16 +8,19 @@ MNE Brain 3D 交互在此环境不可用；本模块只用 matplotlib（含 mplo
 FigureCanvasQTAgg 并 close 旧图；函数内部不调用 plt.show()。
 """
 from __future__ import annotations
-from typing import Any, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, cast
 import numpy as np
 
+if TYPE_CHECKING:
+    from matplotlib.figure import Figure
 
-def _new_fig(w: float = 6.0, h: float = 4.2):
+
+def _new_fig(w: float = 6.0, h: float = 4.2) -> Figure:
     from matplotlib.figure import Figure
     return Figure(figsize=(w, h), dpi=100)
 
 
-def fig_bem_geometry(bem: Any, max_tri_per_surf: int = 1500):
+def fig_bem_geometry(bem: Any, max_tri_per_surf: int = 1500) -> Figure:
     """BEM 三层表面几何（mplot3d 真实三角网格，MRI 坐标，单位 mm）。
 
     bem: make_bem_solution 返回的 ConductorModel（dict-like，含 'surfs'，
@@ -61,10 +64,10 @@ def fig_bem_geometry(bem: Any, max_tri_per_surf: int = 1500):
 
 
 def fig_sphere_geometry(
-    sphere: dict,
+    sphere: dict[str, Any],
     ch_pos: np.ndarray | None = None,
     ch_names: Sequence[str] | None = None,
-):
+) -> Figure:
     """球形头模型：头圆截面 + 传感器 XY 投影（单位 mm）。"""
     fig = _new_fig()
     ax = fig.add_subplot(111, aspect="equal")
@@ -89,7 +92,7 @@ def fig_sphere_geometry(
     return fig
 
 
-def fig_sensitivity(fwd: Any):
+def fig_sensitivity(fwd: Any) -> Figure:
     """导场敏感度图：mne.sensitivity_map 真实计算 + 源位置散点投影。
 
     注：mne 1.13 无 mne.viz.plot_sensitivity_map，且 VolSourceEstimate
@@ -115,10 +118,10 @@ def fig_sensitivity(fwd: Any):
     return fig
 
 
-def fig_stc_topomap(stc: Any, time_idx: int = 0):
+def fig_stc_topomap(stc: Any, time_idx: int = 0) -> Figure:
     """源估计头皮地形投影（stc.plot_topomap，matplotlib 后端可嵌入）。"""
     t = float(stc.times[time_idx]) if len(stc.times) > time_idx else float(stc.times[0])
-    fig = stc.plot_topomap(t, show=False)
+    fig = cast(Figure, stc.plot_topomap(t, show=False))
     return fig
 
 
@@ -135,10 +138,10 @@ _FLIP_VIEWS = {"medial", "caudal", "ventral"}
 
 
 def fig_dipoles_2d(
-    dipoles: list[dict],
+    dipoles: list[dict[str, Any]],
     view: str = "dorsal",
     head_radius_m: float = 0.095,
-):
+) -> Figure:
     """偶极子位置+朝向 2D 投影示意（箭头=朝向×幅度，圆=头边界，单位 mm）。
 
     这是无 pyvista 时的降级示意，非 Brain 渲染；标题与坐标轴如实标注平面。
@@ -173,7 +176,7 @@ def fig_dipoles_2d(
     return fig
 
 
-def fig_sensors_2d(ch_pos: np.ndarray, ch_names: Sequence[str]):
+def fig_sensors_2d(ch_pos: np.ndarray, ch_names: Sequence[str]) -> Figure:
     """传感器 2D 分布（头坐标 XY 投影，无需 montage）。"""
     fig = _new_fig()
     ax = fig.add_subplot(111, aspect="equal")
@@ -192,7 +195,7 @@ def fig_sensors_2d(ch_pos: np.ndarray, ch_names: Sequence[str]):
     return fig
 
 
-def fig_src_cloud(src: Any):
+def fig_src_cloud(src: Any) -> Figure:
     """源空间点云 2D 投影（XY）+ 各子空间点数；连通性矩阵未计算时的诚实底图。"""
     fig = _new_fig()
     ax = fig.add_subplot(111, aspect="equal")

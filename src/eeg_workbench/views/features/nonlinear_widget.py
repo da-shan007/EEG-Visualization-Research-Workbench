@@ -1,6 +1,7 @@
 """非线性分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class NonlinearWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -117,15 +118,15 @@ class NonlinearWidget(QWidget):
         # 初始化指标列表
         self._populate_measures_list()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.nonlinear_result.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _populate_measures_list(self):
+    def _populate_measures_list(self) -> None:
         self._lst_measures.clear()
         for measure in NonlinearMeasure:
             item = QListWidgetItem(f"{measure.value}")
@@ -140,7 +141,7 @@ class NonlinearWidget(QWidget):
             if item.data(Qt.ItemDataRole.UserRole).value in defaults:
                 item.setCheckState(Qt.CheckState.Checked)
 
-    def _apply_preset(self, preset: str):
+    def _apply_preset(self, preset: str) -> None:
         for i in range(self._lst_measures.count()):
             item = self._lst_measures.item(i)
             measure = item.data(Qt.ItemDataRole.UserRole)
@@ -155,7 +156,7 @@ class NonlinearWidget(QWidget):
             elif preset == "full":
                 item.setCheckState(Qt.CheckState.Checked)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.nonlinear_params
         self._block_signals(True)
         try:
@@ -175,7 +176,7 @@ class NonlinearWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._spin_sampen_m, self._spin_sampen_r, self._spin_perm_order,
             self._spin_perm_delay, self._edit_dfa_scales, self._spin_lyap_min_sep
@@ -183,7 +184,7 @@ class NonlinearWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         # 收集勾选的指标
         measures = []
         for i in range(self._lst_measures.count()):
@@ -204,15 +205,15 @@ class NonlinearWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_nonlinear(self):
+    def _run_nonlinear(self) -> None:
         self._vm.run_nonlinear()
 
     @Slot()
-    def _run_from_epochs(self):
+    def _run_from_epochs(self) -> None:
         self.status_message.emit("请先定义事件和 Epochs 参数")
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         if result and result.nonlinear:
             keys = list(result.nonlinear.keys())
             self.status_message.emit(f"非线性指标计算完成: {', '.join(keys)}")

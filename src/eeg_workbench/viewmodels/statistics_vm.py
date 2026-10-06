@@ -1,6 +1,6 @@
 """统计分析模块 ViewModel"""
 from __future__ import annotations
-from typing import Optional, Any
+from typing import Optional, Any, cast
 from dataclasses import dataclass
 from enum import Enum
 
@@ -14,7 +14,7 @@ from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.statistics import (
     StatisticsParams, TTestParams, ANOVAParams, NonparametricParams,
     PermutationParams, CorrelationParams,
-    StatisticalTest, MultipleComparisonCorrection, EffectSize,
+    StatisticalTest, MultipleComparisonCorrection, EffectSize, StatisticsDesign,
     ComparisonResult, CorrelationResult, StatisticsResult,
     create_statistics_params
 )
@@ -61,7 +61,7 @@ class StatisticsViewModel(ViewModelBase):
         erp_vm: ERPViewModel,
         source_vm: SourceViewModel,
         parent: QObject | None = None
-    ):
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._preproc_vm = preproc_vm
@@ -79,9 +79,9 @@ class StatisticsViewModel(ViewModelBase):
         self._corr_params = CorrelationParams()
 
         # 结果缓存
-        self._ttest_results: list = []
-        self._anova_results: list = []
-        self._correlation_results: list = []
+        self._ttest_results: list[dict[str, Any]] = []
+        self._anova_results: list[dict[str, Any]] = []
+        self._correlation_results: list[CorrelationResultWrap] = []
 
         self._processing_steps: list[StatisticsStepUI] = []
 
@@ -135,39 +135,39 @@ class StatisticsViewModel(ViewModelBase):
         return vars
 
     # ---- 参数设置 ----
-    def set_stats_params(self, **kwargs):
+    def set_stats_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._stats_params, k):
                 setattr(self._stats_params, k, v)
 
-    def set_ttest_params(self, **kwargs):
+    def set_ttest_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._ttest_params, k):
                 setattr(self._ttest_params, k, v)
 
-    def set_anova_params(self, **kwargs):
+    def set_anova_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._anova_params, k):
                 setattr(self._anova_params, k, v)
 
-    def set_nonparam_params(self, **kwargs):
+    def set_nonparam_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._nonparam_params, k):
                 setattr(self._nonparam_params, k, v)
 
-    def set_perm_params(self, **kwargs):
+    def set_perm_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._perm_params, k):
                 setattr(self._perm_params, k, v)
 
-    def set_corr_params(self, **kwargs):
+    def set_corr_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._corr_params, k):
                 setattr(self._corr_params, k, v)
 
-    def apply_preset(self, design: str, **overrides):
+    def apply_preset(self, design: str, **overrides: Any) -> None:
         """应用预设设计"""
-        self._stats_params = create_statistics_params(design, **overrides)
+        self._stats_params = create_statistics_params(cast(StatisticsDesign, design), **overrides)
         self._sync_from_vm()
 
     # ---- 统计检验执行 ----
@@ -209,8 +209,8 @@ class StatisticsViewModel(ViewModelBase):
         self,
         groups_data: list[np.ndarray],
         group_names: list[str],
-        subject_ids: np.ndarray | list | None = None,
-    ) -> Optional[dict]:
+        subject_ids: np.ndarray | list[str] | None = None,
+    ) -> Optional[dict[str, Any]]:
         """运行方差分析"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
@@ -239,7 +239,7 @@ class StatisticsViewModel(ViewModelBase):
         group1: np.ndarray,
         group2: np.ndarray | None,
         groups: list[np.ndarray] | None = None,
-    ) -> Optional[dict]:
+    ) -> Optional[dict[str, Any]]:
         """运行非参数检验"""
         if not self._dataset:
             return None
@@ -281,7 +281,7 @@ class StatisticsViewModel(ViewModelBase):
         self,
         data: np.ndarray,  # (n_subjects, n_channels, n_times) or (n_subjects, n_channels)
         channel_adjacency: np.ndarray | None = None
-    ) -> Optional[dict]:
+    ) -> Optional[dict[str, Any]]:
         """运行簇置换检验"""
         if not self._dataset:
             return None
@@ -384,7 +384,7 @@ class StatisticsViewModel(ViewModelBase):
         self,
         p_values: np.ndarray,
         method: MultipleComparisonCorrection | None = None
-    ) -> Optional[dict]:
+    ) -> Optional[dict[str, Any]]:
         """多重比较校正"""
         if method is None:
             method = self._stats_params.global_correction
@@ -400,7 +400,7 @@ class StatisticsViewModel(ViewModelBase):
         group1: np.ndarray,
         group2: np.ndarray,
         effect_type: EffectSize = EffectSize.COHEN_D
-    ) -> Optional[dict]:
+    ) -> Optional[dict[str, Any]]:
         """计算效应量"""
         from eeg_workbench.services.statistics.effect_size import (
             compute_effect_size as _compute_effect_size,
@@ -412,7 +412,7 @@ class StatisticsViewModel(ViewModelBase):
     def run_effect_size(
         self,
         effect_type: EffectSize = EffectSize.COHEN_D,
-    ) -> Optional[dict]:
+    ) -> Optional[dict[str, Any]]:
         """基于当前数据集事件分组的效应量便捷计算
 
         按事件描述把采样点分成两组，比较两组的平均振幅，
@@ -456,26 +456,26 @@ class StatisticsViewModel(ViewModelBase):
         return dict(result.__dict__) if result else None
 
     # ---- 内部方法 ----
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self._dataset = dataset
         # 转发给本模块 View（View 只订阅此处的信号，不订阅 data_vm）
         self.dataset_changed.emit(dataset)
 
-    def _on_preproc_dataset_changed(self, dataset):
+    def _on_preproc_dataset_changed(self, dataset: EEGDataset | None) -> None:
         if dataset:
             self._dataset = dataset
             self.dataset_changed.emit(dataset)
 
-    def _on_features_dataset_changed(self, dataset):
+    def _on_features_dataset_changed(self, dataset: EEGDataset | None) -> None:
         if dataset:
             self._dataset = dataset
             self.dataset_changed.emit(dataset)
 
-    def _add_step(self, name: str, desc: str, time_ms: float = 0):
+    def _add_step(self, name: str, desc: str, time_ms: float = 0) -> None:
         step = StatisticsStepUI(name=name, description=desc, completed=True, processing_time_ms=time_ms)
         self._processing_steps.append(step)
         self.processing_steps_changed.emit(self._processing_steps)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         # 同步 UI 参数
         pass

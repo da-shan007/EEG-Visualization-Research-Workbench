@@ -16,7 +16,7 @@ class FilterResult:
     dataset: EEGDataset
     params_used: FilterParams
     processing_time_ms: float
-    filter_info: dict[str, Any] = None
+    filter_info: dict[str, Any] | None = None
 
 
 class FilterService:
@@ -103,9 +103,9 @@ class FilterService:
         )
 
     @staticmethod
-    def _build_mne_kwargs(params: FilterParams) -> dict:
+    def _build_mne_kwargs(params: FilterParams) -> dict[str, Any]:
         """构建 MNE 滤波参数字典"""
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
 
         if params.filter_type != FilterType.NOTCH:
             kwargs["l_freq"] = params.l_freq
@@ -132,7 +132,7 @@ class FilterService:
         return kwargs
 
     @staticmethod
-    def _params_to_dict(params: FilterParams) -> dict:
+    def _params_to_dict(params: FilterParams) -> dict[str, Any]:
         return {
             "filter_type": params.filter_type.value,
             "l_freq": params.l_freq,
@@ -148,25 +148,25 @@ class FilterService:
 
     # ---- 便捷预设方法 ----
     @classmethod
-    def bandpass(cls, dataset: EEGDataset, l_freq: float, h_freq: float, **kwargs) -> FilterResult:
+    def bandpass(cls, dataset: EEGDataset, l_freq: float, h_freq: float, **kwargs: Any) -> FilterResult:
         """带通滤波"""
         params = create_filter_params("standard", l_freq=l_freq, h_freq=h_freq, filter_type=FilterType.BANDPASS, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def highpass(cls, dataset: EEGDataset, l_freq: float, **kwargs) -> FilterResult:
+    def highpass(cls, dataset: EEGDataset, l_freq: float, **kwargs: Any) -> FilterResult:
         """高通滤波"""
         params = create_filter_params("standard", l_freq=l_freq, filter_type=FilterType.HIGHPASS, h_freq=None, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def lowpass(cls, dataset: EEGDataset, h_freq: float, **kwargs) -> FilterResult:
+    def lowpass(cls, dataset: EEGDataset, h_freq: float, **kwargs: Any) -> FilterResult:
         """低通滤波"""
         params = create_filter_params("standard", h_freq=h_freq, filter_type=FilterType.LOWPASS, l_freq=None, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def notch(cls, dataset: EEGDataset, freqs: float | list[float] = 50.0, width: float = 1.0, **kwargs) -> FilterResult:
+    def notch(cls, dataset: EEGDataset, freqs: float | list[float] = 50.0, width: float = 1.0, **kwargs: Any) -> FilterResult:
         """陷波滤波"""
         params = FilterParams(
             filter_type=FilterType.NOTCH,
@@ -177,7 +177,7 @@ class FilterService:
         return cls.apply(dataset, params)
 
     @classmethod
-    def bandstop(cls, dataset: EEGDataset, l_freq: float, h_freq: float, **kwargs) -> FilterResult:
+    def bandstop(cls, dataset: EEGDataset, l_freq: float, h_freq: float, **kwargs: Any) -> FilterResult:
         """带阻滤波"""
         params = FilterParams(
             filter_type=FilterType.BANDSTOP,
@@ -188,13 +188,13 @@ class FilterService:
         return cls.apply(dataset, params)
 
     @classmethod
-    def standard_preprocessing(cls, dataset: EEGDataset, **overrides) -> FilterResult:
+    def standard_preprocessing(cls, dataset: EEGDataset, **overrides: Any) -> FilterResult:
         """标准预处理滤波：0.1-40Hz + 50Hz 陷波"""
         params = create_filter_params("standard", **overrides)
         return cls.apply(dataset, params)
 
     @classmethod
-    def ica_preparation(cls, dataset: EEGDataset, **overrides) -> FilterResult:
+    def ica_preparation(cls, dataset: EEGDataset, **overrides: Any) -> FilterResult:
         """ICA 预处理滤波：1Hz 高通 + 陷波 (不低通)"""
         params = create_filter_params("ica_prep", **overrides)
         return cls.apply(dataset, params)
@@ -204,7 +204,7 @@ class FilterService:
 def apply_filter(
     dataset: EEGDataset,
     params: FilterParams,
-    **kwargs
+    **kwargs: Any
 ) -> FilterResult:
     """函数式接口"""
     return FilterService.apply(dataset, params, **kwargs)

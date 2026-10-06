@@ -162,7 +162,7 @@ class ReferenceService:
         return []
 
     @staticmethod
-    def _params_to_dict(params: ReferenceParams) -> dict:
+    def _params_to_dict(params: ReferenceParams) -> dict[str, Any]:
         return {
             "ref_type": params.ref_type.value,
             "ref_channels": params.ref_channels,
@@ -171,32 +171,32 @@ class ReferenceService:
 
     # ---- 便捷方法 ----
     @classmethod
-    def average(cls, dataset: EEGDataset, **kwargs) -> ReferenceResult:
+    def average(cls, dataset: EEGDataset, **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.AVERAGE, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def mastoid(cls, dataset: EEGDataset, **kwargs) -> ReferenceResult:
+    def mastoid(cls, dataset: EEGDataset, **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.MAStoid, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def cz(cls, dataset: EEGDataset, **kwargs) -> ReferenceResult:
+    def cz(cls, dataset: EEGDataset, **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.CZ, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def single(cls, dataset: EEGDataset, ref_channel: str, **kwargs) -> ReferenceResult:
+    def single(cls, dataset: EEGDataset, ref_channel: str, **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.SINGLE, ref_channels=[ref_channel], **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def custom(cls, dataset: EEGDataset, ref_channels: list[str], **kwargs) -> ReferenceResult:
+    def custom(cls, dataset: EEGDataset, ref_channels: list[str], **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.CUSTOM, ref_channels=ref_channels, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def rest(cls, dataset: EEGDataset, **kwargs) -> ReferenceResult:
+    def rest(cls, dataset: EEGDataset, **kwargs: Any) -> ReferenceResult:
         params = ReferenceParams(ref_type=ReferenceType.REST, **kwargs)
         return cls.apply(dataset, params)
 
@@ -204,6 +204,6 @@ class ReferenceService:
 def apply_reference(
     dataset: EEGDataset,
     params: ReferenceParams,
-    **kwargs
+    **kwargs: Any
 ) -> ReferenceResult:
     return ReferenceService.apply(dataset, params, **kwargs)

@@ -232,5 +232,54 @@ class TestERPIntegration:
         assert result.result.tfrs is not None
 
 
+class TestPeakNormalization:
+    """峰值表示归一化回归测试。
+
+    ERPService._detect_peaks 给纯 dict，PeakDetector.batch_detect 给
+    PeakResult 对象（不支持下标访问）。_serialize_peaks/_peak_to_dict
+    必须两种都接受——以前 PeakResult 路径走 _emit_peaks 会 TypeError。
+    """
+
+    def _peak_obj(self):
+        from eeg_workbench.models.erp import PeakResult
+        return PeakResult(
+            component=ERPComponent.P3,
+            latency=0.3, amplitude=5.0, channel="Ch0",
+            polarity="positive", time_window=(0.2, 0.5),
+        )
+
+    def test_peak_to_dict_accepts_peak_result(self):
+        from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+        d = ERPViewModel._peak_to_dict(self._peak_obj())
+        assert d == {"latency": 0.3, "amplitude": 5.0,
+                     "channel": "Ch0", "polarity": "positive"}
+
+    def test_peak_to_dict_accepts_plain_dict(self):
+        from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+        d = ERPViewModel._peak_to_dict(
+            {"latency": 0.3, "amplitude": 5.0,
+             "channel": "Ch0", "polarity": "positive"})
+        assert d["latency"] == 0.3
+
+    def test_peak_to_dict_none_and_empty(self):
+        from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+        assert ERPViewModel._peak_to_dict(None) is None
+        assert ERPViewModel._peak_to_dict({}) is None
+
+    def test_serialize_peaks_with_peak_result_objects(self):
+        from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+        out = ERPViewModel._serialize_peaks(
+            {"Cond": {ERPComponent.P3: self._peak_obj()}})
+        assert out["Cond"]["P3"]["latency"] == 0.3
+
+    def test_serialize_peaks_with_plain_dicts(self):
+        from eeg_workbench.viewmodels.erp_vm import ERPViewModel
+        out = ERPViewModel._serialize_peaks(
+            {"Cond": {ERPComponent.P3: {
+                "latency": 0.3, "amplitude": 5.0,
+                "channel": "Ch0", "polarity": "positive"}}})
+        assert out["Cond"]["P3"]["channel"] == "Ch0"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v", "-m", "not integration"])

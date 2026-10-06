@@ -165,7 +165,7 @@ class ERPService:
         return epochs_dict
 
     @staticmethod
-    def _find_events(raw, ep_params: EpochParams) -> tuple[np.ndarray, dict]:
+    def _find_events(raw: Any, ep_params: EpochParams) -> tuple[np.ndarray, dict[str, Any]]:
         """查找匹配事件"""
         import mne
 
@@ -196,8 +196,8 @@ class ERPService:
 
     @staticmethod
     def _detect_peaks(
-        evoked, params: ERPAnalysisParams, cond_name: str
-    ) -> dict[ERPComponent, dict]:
+        evoked: Any, params: ERPAnalysisParams, cond_name: str
+    ) -> dict[ERPComponent, dict[str, Any]]:
         """检测 ERP 峰值"""
         from scipy.signal import find_peaks
         
@@ -259,9 +259,9 @@ class ERPService:
         return peaks
 
     @staticmethod
-    def _statistical_test(evokeds: dict, params: ERPAnalysisParams) -> dict:
+    def _statistical_test(evokeds: dict[str, Any], params: ERPAnalysisParams) -> dict[str, Any]:
         """统计检验"""
-        stats = {}
+        stats: dict[str, Any] = {}
         
         if params.stats_test == "ttest":
             # 成对 t 检验需要元数据中的分组信息
@@ -279,7 +279,7 @@ class ERPService:
         return stats
 
     @staticmethod
-    def _compute_topomap(evokeds: dict, time_point: float) -> dict:
+    def _compute_topomap(evokeds: dict[str, Any], time_point: float) -> dict[str, Any]:
         """计算地形图数据"""
         topomaps = {}
         for cond_name, evoked in evokeds.items():
@@ -296,6 +296,6 @@ class ERPService:
 def run_erp_analysis(
     dataset: EEGDataset,
     params: ERPAnalysisParams,
-    **kwargs
+    **kwargs: Any
 ) -> ERPAnalysisResult:
     return ERPService.analyze(dataset, params, **kwargs)

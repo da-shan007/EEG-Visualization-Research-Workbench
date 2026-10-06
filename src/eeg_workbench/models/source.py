@@ -22,6 +22,11 @@ class SourceSpaceType(Enum):
     DISCRETE = "discrete"             # 离散源空间 (用于偶极子拟合)
 
 
+# ---- 具名字面量别名：下拉框固定选项与模型字段共享同一类型 ----
+PickOri = Literal["normal", "max-power", "vector"]
+DipoleFitMethod = Literal["least_squares", "nelder_mead", "differential_evolution"]
+
+
 class InverseMethod(Enum):
     """逆向求解方法"""
     # 偶极子拟合
@@ -135,7 +140,7 @@ class InverseParams:
     weight_norm: bool = True
     
     # Beamformer
-    rank: dict | None = None
+    rank: dict[str, Any] | None = None
     reduce_rank: bool = True
     
     # 时间窗
@@ -148,7 +153,7 @@ class InverseParams:
     csd_method: str = "multitaper"  # 'multitaper', 'morlet', 'fourier'
     
     # 输出选项
-    pick_ori: Literal["normal", "max-power", "vector"] = "normal"
+    pick_ori: PickOri = "normal"
 
     def validate(self, method: InverseMethod) -> list[str]:
         errors = []
@@ -162,7 +167,7 @@ class InverseParams:
 class DipoleFitParams:
     """偶极子拟合参数"""
     # 拟合策略
-    method: Literal["least_squares", "nelder_mead", "differential_evolution"] = "least_squares"
+    method: DipoleFitMethod = "least_squares"
     
     # 初始猜测
     initial_pos: np.ndarray | None = None  # (3,) 米
@@ -200,7 +205,7 @@ class SourceAnalysisResult:
     inv: Any | None = None  # mne.InverseOperator
     
     # 偶极子拟合结果
-    dipoles: list[dict] | None = None
+    dipoles: list[dict[str, Any]] | None = None
     
     # 元信息
     method: str = ""
@@ -266,7 +271,7 @@ STANDARD_HEAD_MODELS = {
 }
 
 
-def create_head_model_params(preset: str = "fsaverage_bem", **overrides) -> HeadModelParams:
+def create_head_model_params(preset: str = "fsaverage_bem", **overrides: Any) -> HeadModelParams:
     if preset not in STANDARD_HEAD_MODELS:
         raise ValueError(f"未知预设: {preset}")
     params = STANDARD_HEAD_MODELS[preset]
@@ -276,7 +281,7 @@ def create_head_model_params(preset: str = "fsaverage_bem", **overrides) -> Head
     return params
 
 
-def create_inverse_params(method: InverseMethod, **overrides) -> InverseParams:
+def create_inverse_params(method: InverseMethod, **overrides: Any) -> InverseParams:
     params = InverseParams(method=method)
     for k, v in overrides.items():
         if hasattr(params, k):
@@ -284,7 +289,7 @@ def create_inverse_params(method: InverseMethod, **overrides) -> InverseParams:
     return params
 
 
-def create_forward_params(**overrides) -> ForwardModelParams:
+def create_forward_params(**overrides: Any) -> ForwardModelParams:
     params = ForwardModelParams()
     for k, v in overrides.items():
         if hasattr(params, k):
@@ -309,7 +314,7 @@ class ForwardModelResult:
     src: Any  # mne.SourceSpaces
     processing_time_ms: float
     params_used: ForwardModelParams
-    leadfield_info: dict
+    leadfield_info: dict[str, Any]
 
 
 @dataclass
@@ -325,6 +330,6 @@ class InverseSolutionResult:
 @dataclass
 class DipoleFitResult:
     """偶极子拟合结果"""
-    dipoles: list[dict]
+    dipoles: list[dict[str, Any]]
     processing_time_ms: float
     params_used: DipoleFitParams

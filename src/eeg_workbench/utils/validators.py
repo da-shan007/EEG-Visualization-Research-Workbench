@@ -1,8 +1,11 @@
 """数据校验器：文件格式、参数范围、业务规则"""
 from __future__ import annotations
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import numpy as np
+
+if TYPE_CHECKING:
+    from eeg_workbench.models.dataset import EEGDataset
 
 
 # ---- 文件格式校验 ----
@@ -123,7 +126,7 @@ class ParameterValidator:
 
 
 # ---- 业务规则校验 ----
-def validate_reference_channels(dataset, ref_channels: list[str]) -> list[str]:
+def validate_reference_channels(dataset: EEGDataset, ref_channels: list[str]) -> list[str]:
     """校验参考电极通道是否存在"""
     errors = []
     missing = [ch for ch in ref_channels if ch not in dataset.ch_names]
@@ -132,7 +135,7 @@ def validate_reference_channels(dataset, ref_channels: list[str]) -> list[str]:
     return errors
 
 
-def validate_bad_channels(dataset, bad_channels: list[str]) -> list[str]:
+def validate_bad_channels(dataset: EEGDataset, bad_channels: list[str]) -> list[str]:
     """校验坏道标记"""
     errors = []
     missing = [ch for ch in bad_channels if ch not in dataset.ch_names]
@@ -143,10 +146,10 @@ def validate_bad_channels(dataset, bad_channels: list[str]) -> list[str]:
     return errors
 
 
-def validate_event_consistency(dataset) -> list[str]:
+def validate_event_consistency(dataset: EEGDataset) -> list[str]:
     """校验事件一致性"""
     from eeg_workbench.models.dataset import Event
-    warnings = []
+    warnings: list[str] = []
 
     if not dataset.events:
         return warnings
@@ -176,7 +179,7 @@ def validate_event_consistency(dataset) -> list[str]:
 class ValidationResult:
     """校验结果容器"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.info: list[str] = []
@@ -222,7 +225,7 @@ class ValidationResult:
         }
 
 
-def validate_dataset_complete(dataset) -> ValidationResult:
+def validate_dataset_complete(dataset: EEGDataset) -> ValidationResult:
     """完整数据集校验（加载后调用）"""
     from eeg_workbench.utils.montage import validate_dataset_integrity
     from eeg_workbench.utils.validators import validate_event_consistency

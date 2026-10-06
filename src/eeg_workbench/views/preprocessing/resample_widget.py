@@ -1,6 +1,7 @@
 """重采样面板：降采样/升采样，目标采样率设置"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class ResampleWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -107,7 +108,7 @@ class ResampleWidget(QWidget):
 
         # ---- 快速操作 ----
         quick_group = QGroupBox("快速操作")
-        quick_layout = QVBoxLayout(quick_group)
+        quick_ops_layout = QVBoxLayout(quick_group)
 
         # 降采样按钮
         down_layout = QHBoxLayout()
@@ -120,7 +121,7 @@ class ResampleWidget(QWidget):
         self._btn_down.clicked.connect(self._downsample)
         down_layout.addWidget(self._btn_down)
         down_layout.addStretch()
-        quick_layout.addLayout(down_layout)
+        quick_ops_layout.addLayout(down_layout)
 
         # 升采样按钮
         up_layout = QHBoxLayout()
@@ -133,7 +134,7 @@ class ResampleWidget(QWidget):
         self._btn_up.clicked.connect(self._upsample)
         up_layout.addWidget(self._btn_up)
         up_layout.addStretch()
-        quick_layout.addLayout(up_layout)
+        quick_ops_layout.addLayout(up_layout)
 
         layout.addWidget(quick_group)
 
@@ -148,10 +149,10 @@ class ResampleWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
@@ -161,7 +162,7 @@ class ResampleWidget(QWidget):
             self._spin_target_sfreq.setValue(dataset.sfreq)
             self._update_ratio(dataset.sfreq)
 
-    def _update_ratio(self, current_sfreq: float):
+    def _update_ratio(self, current_sfreq: float) -> None:
         target = self._spin_target_sfreq.value()
         if current_sfreq > 0:
             ratio = target / current_sfreq
@@ -175,7 +176,7 @@ class ResampleWidget(QWidget):
                 self._lbl_ratio.setText("倍数: 1.00x (无变化)")
                 self._lbl_ratio.setStyleSheet("color: #27ae60;")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.resample_params
         self._block_signals(True)
         try:
@@ -186,12 +187,12 @@ class ResampleWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [self._spin_target_sfreq, self._cmb_method, self._cmb_npad, self._cmb_window]:
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ResampleParams(
             sfreq=self._spin_target_sfreq.value(),
             method=ResampleMethod(self._cmb_method.currentText()),
@@ -202,7 +203,7 @@ class ResampleWidget(QWidget):
         self._update_ratio(self._vm.dataset.sfreq if self._vm.dataset else 250)
         self.params_changed.emit()
 
-    def _resample_params_to_dict(self, params: ResampleParams) -> dict:
+    def _resample_params_to_dict(self, params: ResampleParams) -> dict[str, Any]:
         return {
             "sfreq": params.sfreq,
             "method": params.method,
@@ -211,7 +212,7 @@ class ResampleWidget(QWidget):
         }
 
     @Slot()
-    def _downsample(self):
+    def _downsample(self) -> None:
         if not self._vm.dataset:
             return
         factor = self._spin_down_factor.value()
@@ -224,12 +225,12 @@ class ResampleWidget(QWidget):
         self._run_resample()
 
     @Slot()
-    def _upsample(self):
+    def _upsample(self) -> None:
         factor = self._spin_up_factor.value()
         target = (self._vm.dataset.sfreq if self._vm.dataset else 250) * factor
         self._spin_target_sfreq.setValue(target)
         self._run_resample()
 
     @Slot()
-    def _run_resample(self):
+    def _run_resample(self) -> None:
         self._vm.run_resample()

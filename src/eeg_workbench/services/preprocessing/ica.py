@@ -20,16 +20,16 @@ class ICAResult:
     processing_time_ms: float
     components_excluded: list[int] = field(default_factory=list)
     component_labels: dict[int, str] = field(default_factory=dict)  # 成分 -> 标签
-    component_properties: dict[int, dict] = field(default_factory=dict)  # 成分属性
+    component_properties: dict[int, dict[str, Any]] = field(default_factory=dict)  # 成分属性
 
 
 class ICAService:
     """ICA 服务：拟合、自动识别、应用"""
 
-    def __init__(self):
-        self._ica = None
-        self._labels = {}
-        self._properties = {}
+    def __init__(self) -> None:
+        self._ica: Any = None
+        self._labels: dict[int, str] = {}
+        self._properties: dict[int, dict[str, Any]] = {}
 
     def fit(
         self,
@@ -81,9 +81,9 @@ class ICAService:
         )
 
         # 自动识别伪影成分
-        excluded = []
-        labels = {}
-        properties = {}
+        excluded: list[int] = []
+        labels: dict[int, str] = {}
+        properties: dict[int, dict[str, Any]] = {}
 
         if params.auto_find:
             excluded, labels, properties = self._auto_identify_artifacts(
@@ -192,7 +192,7 @@ class ICAService:
         self,
         dataset: EEGDataset,
         params: ICAParams,
-        **kwargs
+        **kwargs: Any
     ) -> ICAResult:
         """一步完成：拟合 + 应用"""
         result = self.fit(dataset, params, **kwargs)
@@ -200,12 +200,12 @@ class ICAService:
 
     def _auto_identify_artifacts(
         self,
-        ica,
-        raw,
+        ica: Any,
+        raw: Any,
         params: ICAParams,
-        picks,
+        picks: list[int] | str | None,
         verbose: bool
-    ) -> tuple[list[int], dict[int, str], dict[int, dict]]:
+    ) -> tuple[list[int], dict[int, str], dict[int, dict[str, Any]]]:
         """自动识别伪影成分"""
         excluded = []
         labels = {}
@@ -276,7 +276,7 @@ class ICAService:
         return excluded, labels, properties
 
     @staticmethod
-    def _load_ref_signal(raw, channels: list[str]) -> np.ndarray | None:
+    def _load_ref_signal(raw: Any, channels: list[str]) -> np.ndarray | None:
         """一次加载参考通道并平均，找不到有效通道返回 None。"""
         try:
             present = [ch for ch in channels if ch in raw.ch_names]
@@ -305,7 +305,7 @@ class ICAService:
             corrs = (X[:-1] @ X[-1]) / (denom[:-1] * denom[-1])
         return np.where(np.isnan(corrs), 0.0, corrs)
 
-    def _compute_eog_correlation(self, ica, raw, comp_idx: int, eog_channels: list[str]) -> float:
+    def _compute_eog_correlation(self, ica: Any, raw: Any, comp_idx: int, eog_channels: list[str]) -> float:
         """计算成分与 EOG 通道的相关性（保留单成分接口，内部复用向量化实现）。"""
         try:
             source_data = ica.get_sources(raw).get_data()
@@ -316,7 +316,7 @@ class ICAService:
         except Exception:
             return 0.0
 
-    def _compute_ecg_correlation(self, ica, raw, comp_idx: int, ecg_channels: list[str]) -> float:
+    def _compute_ecg_correlation(self, ica: Any, raw: Any, comp_idx: int, ecg_channels: list[str]) -> float:
         """计算成分与 ECG 通道的相关性（保留单成分接口，内部复用向量化实现）。"""
         try:
             source_data = ica.get_sources(raw).get_data()
@@ -334,21 +334,21 @@ class ICAService:
     def get_component_labels(self) -> dict[int, str]:
         return self._labels.copy()
 
-    def get_component_properties(self) -> dict[int, dict]:
+    def get_component_properties(self) -> dict[int, dict[str, Any]]:
         return self._properties.copy()
 
-    def plot_components(self, ica_result: ICAResult, **kwargs):
+    def plot_components(self, ica_result: ICAResult, **kwargs: Any) -> None:
         """绘制 ICA 成分 (调用 MNE 绘图)"""
         if ica_result.ica:
             ica_result.ica.plot_components(**kwargs)
 
-    def plot_sources(self, ica_result: ICAResult, dataset: EEGDataset, **kwargs):
+    def plot_sources(self, ica_result: ICAResult, dataset: EEGDataset, **kwargs: Any) -> None:
         """绘制 ICA 成分时间序列"""
         if ica_result.ica:
             raw = dataset.to_mne_raw()
             ica_result.ica.plot_sources(raw, **kwargs)
 
-    def plot_properties(self, ica_result: ICAResult, dataset: EEGDataset, picks: list[int], **kwargs):
+    def plot_properties(self, ica_result: ICAResult, dataset: EEGDataset, picks: list[int], **kwargs: Any) -> None:
         """绘制指定成分的属性"""
         if ica_result.ica:
             raw = dataset.to_mne_raw()
@@ -359,7 +359,7 @@ class ICAService:
 def run_ica(
     dataset: EEGDataset,
     params: ICAParams,
-    **kwargs
+    **kwargs: Any
 ) -> ICAResult:
     """运行 ICA 拟合"""
     service = ICAService()
@@ -369,7 +369,7 @@ def run_ica(
 def apply_ica(
     dataset: EEGDataset,
     ica_result: ICAResult,
-    **kwargs
+    **kwargs: Any
 ) -> ICAResult:
     """应用 ICA"""
     service = ICAService()

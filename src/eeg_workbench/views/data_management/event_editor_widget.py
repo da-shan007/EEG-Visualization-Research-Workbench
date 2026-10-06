@@ -1,9 +1,9 @@
 """事件编辑器 Widget：表格编辑、波形标记、导入/导出"""
 from __future__ import annotations
-from typing import Optional
+from typing import Any, Optional
 import numpy as np
 
-from PySide6.QtCore import Signal, Slot, Qt, QAbstractTableModel, QModelIndex, QTimer
+from PySide6.QtCore import Signal, Slot, Qt, QAbstractTableModel, QModelIndex, QPersistentModelIndex, QTimer, QPoint, QObject
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QTableView,
     QPushButton, QComboBox, QLineEdit, QSpinBox, QDoubleSpinBox,
@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction, QColor, QBrush
 
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
-from eeg_workbench.models.dataset import Event
-from eeg_workbench.services.events import import_vmrk, import_tsv, export_vmrk, export_tsv
+from eeg_workbench.models.dataset import EEGDataset, Event
+from eeg_workbench.services.events import import_vmrk, import_tsv, export_vmrk, export_tsv, EventEditor
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -24,17 +24,17 @@ class EventTableModel(QAbstractTableModel):
 
     COLUMNS = ["索引", "起始(s)", "持续(s)", "描述", "值", "样本点", "通道", "置信度"]
 
-    def __init__(self, events: list[Event] = None, parent=None):
+    def __init__(self, events: list[Event] | None = None, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._events = events or []
 
-    def rowCount(self, parent=QModelIndex()) -> int:
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return len(self._events)
 
-    def columnCount(self, parent=QModelIndex()) -> int:
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return len(self.COLUMNS)
 
-    def data(self, index: QModelIndex, role=Qt.ItemDataRole.DisplayRole):
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if not index.isValid():
             return None
         ev = self._events[index.row()]
@@ -87,12 +87,12 @@ class EventTableModel(QAbstractTableModel):
             return f"Event: {ev.description}\nOnset: {ev.onset:.3f}s\nValue: {ev.value}"
         return None
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role=Qt.ItemDataRole.DisplayRole):
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         if role == Qt.ItemDataRole.DisplayRole and orientation == Qt.Orientation.Horizontal:
             return self.COLUMNS[section]
         return None
 
-    def flags(self, index: QModelIndex):
+    def flags(self, index: QModelIndex | QPersistentModelIndex) -> Qt.ItemFlag:
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
         # 允许编辑除索引外的所有列
@@ -100,7 +100,7 @@ class EventTableModel(QAbstractTableModel):
             return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
         return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsEditable
 
-    def setData(self, index: QModelIndex, value, role=Qt.ItemDataRole.EditRole) -> bool:
+    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
         if not index.isValid() or role != Qt.ItemDataRole.EditRole:
             return False
         ev = self._events[index.row()]
@@ -125,17 +125,17 @@ class EventTableModel(QAbstractTableModel):
         except (ValueError, TypeError):
             return False
 
-    def set_events(self, events: list[Event]):
+    def set_events(self, events: list[Event]) -> None:
         self.beginResetModel()
         self._events = events
         self.endResetModel()
 
-    def add_event(self, event: Event):
+    def add_event(self, event: Event) -> None:
         self.beginInsertRows(QModelIndex(), len(self._events), len(self._events))
         self._events.append(event)
         self.endInsertRows()
 
-    def remove_event(self, row: int):
+    def remove_event(self, row: int) -> None:
         if 0 <= row < len(self._events):
             self.beginRemoveRows(QModelIndex(), row, row)
             self._events.pop(row)
@@ -157,14 +157,14 @@ class EventEditorWidget(QWidget):
     status_message = Signal(str)
     request_waveform_marker = Signal(float, str)  # 请求在波形上标记 (time, desc)
 
-    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
-        self._editor = None
+        self._editor: EventEditor | None = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
@@ -276,12 +276,12 @@ class EventEditorWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.event_editor_ready.connect(self._on_editor_ready)
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self.setEnabled(dataset is not None)
         if dataset:
             self._editor = self._vm.get_event_editor()
@@ -291,21 +291,21 @@ class EventEditorWidget(QWidget):
             self._lbl_count.setText("事件: 0")
 
     @Slot(object)
-    def _on_editor_ready(self, editor):
+    def _on_editor_ready(self, editor: EventEditor | None) -> None:
         self._editor = editor
         self._refresh_table()
 
-    def _refresh_table(self):
+    def _refresh_table(self) -> None:
         if self._editor:
             self._model.set_events(self._editor.events)
             self._lbl_count.setText(f"事件: {len(self._editor.events)}")
 
     # ---- 表格交互 ----
     @Slot(QModelIndex)
-    def _on_double_clicked(self, index: QModelIndex):
+    def _on_double_clicked(self, index: QModelIndex) -> None:
         self._edit_selected()
 
-    def _show_context_menu(self, pos):
+    def _show_context_menu(self, pos: QPoint) -> None:
         index = self._view.indexAt(pos)
         menu = QMenu(self)
         if index.isValid():
@@ -325,7 +325,7 @@ class EventEditorWidget(QWidget):
             menu.addAction(act_add)
         menu.exec(self._view.viewport().mapToGlobal(pos))
 
-    def _add_event_dialog(self):
+    def _add_event_dialog(self) -> None:
         dlg = EventEditDialog(self, dataset=self._vm.dataset)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             ev = dlg.get_event()
@@ -334,7 +334,7 @@ class EventEditorWidget(QWidget):
                 self._vm.dataset_changed.emit(self._vm._dataset)
                 self.status_message.emit(f"已添加事件: {ev.description} @ {ev.onset:.3f}s")
 
-    def _edit_selected(self):
+    def _edit_selected(self) -> None:
         rows = self._view.selectionModel().selectedRows()
         if not rows:
             return
@@ -348,7 +348,7 @@ class EventEditorWidget(QWidget):
                 self._vm.dataset_changed.emit(self._vm._dataset)
                 self.status_message.emit(f"已更新事件: {new_ev.description}")
 
-    def _delete_selected(self):
+    def _delete_selected(self) -> None:
         rows = sorted([r.row() for r in self._view.selectionModel().selectedRows()], reverse=True)
         if not rows:
             return
@@ -358,13 +358,13 @@ class EventEditorWidget(QWidget):
             self._vm.dataset_changed.emit(self._vm._dataset)
             self.status_message.emit(f"已删除 {len(rows)} 个事件")
 
-    def _mark_on_waveform(self, row: int):
+    def _mark_on_waveform(self, row: int) -> None:
         ev = self._model.get_event(row)
         if ev:
             self.request_waveform_marker.emit(ev.onset, ev.description)
 
     # ---- 导入导出 ----
-    def _import_vmrk(self):
+    def _import_vmrk(self) -> None:
         if not self._vm.dataset:
             return
         path, _ = QFileDialog.getOpenFileName(self, "导入 VMRK", "", "VMRK 文件 (*.vmrk);;所有文件 (*.*)")
@@ -373,7 +373,7 @@ class EventEditorWidget(QWidget):
                 self._refresh_table()
                 self.status_message.emit(f"已导入 VMRK: {path}")
 
-    def _import_tsv(self):
+    def _import_tsv(self) -> None:
         if not self._vm.dataset:
             return
         path, _ = QFileDialog.getOpenFileName(self, "导入 TSV", "", "TSV 文件 (*.tsv);;所有文件 (*.*)")
@@ -382,7 +382,7 @@ class EventEditorWidget(QWidget):
                 self._refresh_table()
                 self.status_message.emit(f"已导入 TSV: {path}")
 
-    def _export_vmrk(self):
+    def _export_vmrk(self) -> None:
         if not self._vm.dataset:
             return
         path, _ = QFileDialog.getSaveFileName(self, "导出 VMRK", "", "VMRK 文件 (*.vmrk)")
@@ -390,7 +390,7 @@ class EventEditorWidget(QWidget):
             if self._vm.export_events_vmrk(path):
                 self.status_message.emit(f"已导出 VMRK: {path}")
 
-    def _export_tsv(self):
+    def _export_tsv(self) -> None:
         if not self._vm.dataset:
             return
         path, _ = QFileDialog.getSaveFileName(self, "导出 TSV", "", "TSV 文件 (*.tsv)")
@@ -399,7 +399,7 @@ class EventEditorWidget(QWidget):
                 self.status_message.emit(f"已导出 TSV: {path}")
 
     # ---- 自动检测 ----
-    def _auto_detect_bad(self):
+    def _auto_detect_bad(self) -> None:
         if not self._editor:
             return
         threshold = self._spin_threshold.value()
@@ -408,7 +408,7 @@ class EventEditorWidget(QWidget):
         self.status_message.emit(f"自动检测到 {count} 个坏段 (阈值 {threshold} µV)")
 
     # ---- 快速添加 ----
-    def _quick_add_event(self):
+    def _quick_add_event(self) -> None:
         if not self._editor or not self._vm.dataset:
             return
         onset = self._quick_time.value()
@@ -431,7 +431,7 @@ class EventEditorWidget(QWidget):
 class EventEditDialog(QDialog):
     """事件编辑对话框"""
 
-    def __init__(self, parent=None, event: Event = None, dataset=None):
+    def __init__(self, parent: QWidget | None = None, event: Event | None = None, dataset: EEGDataset | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("编辑事件" if event else "新建事件")
         self.setModal(True)
@@ -442,7 +442,7 @@ class EventEditDialog(QDialog):
         if event:
             self._load_event(event)
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
@@ -495,11 +495,11 @@ class EventEditDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def _on_type_changed(self, text: str):
+    def _on_type_changed(self, text: str) -> None:
         if text != "自定义" and not self._edit_desc.text():
             self._edit_desc.setText(text)
 
-    def _load_event(self, ev: Event):
+    def _load_event(self, ev: Event) -> None:
         self._spin_onset.setValue(ev.onset)
         self._spin_duration.setValue(ev.duration)
         # 推断类型

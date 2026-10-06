@@ -287,7 +287,7 @@ def compute_correlation(
     x: np.ndarray,
     y: np.ndarray,
     params: CorrelationParams,
-    **kwargs
+    **kwargs: Any
 ) -> CorrelationResultWrap:
     return CorrelationService.compute_correlation(x, y, params)
 
@@ -297,6 +297,6 @@ def compute_partial_correlation(
     control_indices: list[int],
     target_indices: list[int] | None = None,
     params: CorrelationParams | None = None,
-    **kwargs
+    **kwargs: Any
 ) -> CorrelationResultWrap:
     return CorrelationService.compute_partial_correlation(data, control_indices, target_indices, params)

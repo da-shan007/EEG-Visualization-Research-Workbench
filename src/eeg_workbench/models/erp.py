@@ -30,6 +30,15 @@ class ERPComponent(Enum):
     CUSTOM = "custom"
 
 
+# ---- 具名字面量别名：下拉框固定选项与模型字段共享同一类型 ----
+ERPAverageMethod = Literal["mean", "median", "robust"]
+PeakPolarity = Literal["pos", "neg", "both"]
+ERPStatsTest = Literal["none", "ttest", "wilcoxon", "permutation"]
+ERPCorrection = Literal["none", "fdr", "bonferroni", "cluster"]
+ERDSStatsTest = Literal["none", "ttest", "permutation"]
+ERDSCorrection = Literal["none", "fdr", "cluster"]
+
+
 @dataclass
 class EpochParams:
     """Epochs 提取参数"""
@@ -81,7 +90,7 @@ class ERPAnalysisParams:
     conditions: dict[str, EpochParams] = field(default_factory=dict)  # 条件名 -> EpochParams
     
     # 平均选项
-    average_method: Literal["mean", "median", "robust"] = "mean"
+    average_method: ERPAverageMethod = "mean"
     
     # 差分波
     contrast_pairs: list[tuple[str, str]] = field(default_factory=list)  # [("Target", "NonTarget")]
@@ -98,16 +107,16 @@ class ERPAnalysisParams:
         ERPComponent.N2: (0.2, 0.35),
         ERPComponent.P3: (0.25, 0.5),
     })
-    peak_polarity: dict[ERPComponent, Literal["pos", "neg", "both"]] = field(default_factory=lambda: {
+    peak_polarity: dict[ERPComponent, PeakPolarity] = field(default_factory=lambda: {
         ERPComponent.P1: "pos", ERPComponent.N1: "neg",
         ERPComponent.P2: "pos", ERPComponent.N2: "neg", ERPComponent.P3: "pos",
     })
     
-    # 统计检验
-    stats_test: Literal["ttest", "wilcoxon", "permutation"] = "permutation"
+    # 统计检验（"none" 来自 GUI 下拉框，服务层以 != "none" 跳过检验）
+    stats_test: ERPStatsTest = "permutation"
     n_permutations: int = 1000
     alpha: float = 0.05
-    correction: Literal["none", "fdr", "bonferroni", "cluster"] = "cluster"
+    correction: ERPCorrection = "cluster"
     
     # 地形图
     topo_times: list[float] = field(default_factory=list)  # 自动使用峰值时刻
@@ -123,10 +132,10 @@ class ERDSParams:
         "Gamma": (30, 45),
     })
     
-    # 时间窗
+    # 时间窗（None 表示不做基线校正，由 GUI 复选框控制）
     tmin: float = -1.0
     tmax: float = 2.0
-    baseline: tuple[float, float] = (-1.0, -0.5)
+    baseline: tuple[float, float] | None = (-1.0, -0.5)
     
     # 时频参数
     tf_method: str = "morlet"  # morlet, multitaper, stft
@@ -138,11 +147,11 @@ class ERDSParams:
     # 条件对比
     conditions: dict[str, EpochParams] = field(default_factory=dict)
     
-    # 统计
-    stats_test: Literal["ttest", "permutation"] = "permutation"
+    # 统计（"none" 来自 GUI 下拉框，服务层以 != "none" 跳过检验）
+    stats_test: ERDSStatsTest = "permutation"
     n_permutations: int = 1000
     alpha: float = 0.05
-    correction: Literal["none", "fdr", "cluster"] = "cluster"
+    correction: ERDSCorrection = "cluster"
 
 
 @dataclass
@@ -155,7 +164,7 @@ class ERPResult:
     contrasts: dict[str, Any] = field(default_factory=dict)  # 对比名 -> mne.Evoked
     
     # 峰值检测结果
-    peaks: dict[str, dict[ERPComponent, dict]] = field(default_factory=dict)
+    peaks: dict[str, dict[ERPComponent, dict[str, Any]]] = field(default_factory=dict)
     # {条件名: {成分: {"latency": float, "amplitude": float, "channel": str}}}
     
     # 统计结果
@@ -178,7 +187,7 @@ class ERPAnalysisResult:
     contrasts: dict[str, Any] = field(default_factory=dict)  # 对比名 -> mne.Evoked
     
     # 峰值检测结果
-    peaks: dict[str, dict[ERPComponent, dict]] = field(default_factory=dict)
+    peaks: dict[str, dict[ERPComponent, dict[str, Any]]] = field(default_factory=dict)
     # {条件名: {成分: {"latency": float, "amplitude": float, "channel": str}}}
     
     # 统计结果
@@ -200,7 +209,7 @@ class PeakResult:
     channel: str            # 峰值通道
     polarity: str           # "positive" / "negative"
     time_window: tuple[float, float]
-    all_candidates: list[dict] | None = None  # 所有候选峰值
+    all_candidates: list[dict[str, Any]] | None = None  # 所有候选峰值
 
 
 @dataclass
@@ -254,7 +263,7 @@ DEFAULT_ERP_PEAK_WINDOWS = {
     ERPComponent.P600: (0.5, 0.8),
 }
 
-DEFAULT_ERP_POLARITY = {
+DEFAULT_ERP_POLARITY: dict[ERPComponent, PeakPolarity] = {
     ERPComponent.P1: "pos", ERPComponent.N1: "neg",
     ERPComponent.P2: "pos", ERPComponent.N2: "neg",
     ERPComponent.P3: "pos", ERPComponent.N400: "neg",
@@ -267,7 +276,7 @@ def create_erp_params(
     tmin: float = -0.2,
     tmax: float = 0.8,
     baseline: tuple[float, float] = (-0.2, 0.0),
-    **kwargs
+    **kwargs: Any
 ) -> ERPAnalysisParams:
     """快速创建 ERP 分析参数"""
     epoch_params = EpochParams(
@@ -288,7 +297,7 @@ def create_erds_params(
     tmin: float = -1.0,
     tmax: float = 2.0,
     baseline: tuple[float, float] = (-1.0, -0.5),
-    **kwargs
+    **kwargs: Any
 ) -> ERDSParams:
     """快速创建 ERD/ERS 分析参数"""
     epoch_params = EpochParams(

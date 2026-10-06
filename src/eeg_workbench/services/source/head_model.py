@@ -170,6 +170,6 @@ class HeadModelService:
 def build_head_model(
     dataset: EEGDataset,
     params: HeadModelParams,
-    **kwargs
+    **kwargs: Any
 ) -> HeadModelResult:
     return HeadModelService.build(dataset, params, **kwargs)

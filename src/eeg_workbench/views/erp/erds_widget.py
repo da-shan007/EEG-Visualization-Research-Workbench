@@ -1,6 +1,7 @@
 """ERD/ERS 分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Literal, Optional, cast
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -12,8 +13,8 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
-from eeg_workbench.models.erp import EpochParams
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.models.erp import BaselineMode, EpochParams
+from eeg_workbench.utils.ui import balance_form, require_table_item
 
 
 class ERDSWidget(QWidget):
@@ -22,13 +23,13 @@ class ERDSWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -174,15 +175,15 @@ class ERDSWidget(QWidget):
         # 初始化默认频段
         self._populate_default_bands()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.erds_result.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _populate_default_bands(self):
+    def _populate_default_bands(self) -> None:
         default_bands = {
             "Theta": (4, 8),
             "Alpha": (8, 13),
@@ -198,7 +199,7 @@ class ERDSWidget(QWidget):
             self._bands_table.setItem(row, 2, QTableWidgetItem(str(high)))
 
     @Slot()
-    def _add_condition_dialog(self):
+    def _add_condition_dialog(self) -> None:
         dlg = ERDSConditionDialog(self, events_list=self._vm.events_list)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             params = dlg.get_params()
@@ -212,7 +213,7 @@ class ERDSWidget(QWidget):
             self._refresh_condition_table()
             self.status_message.emit(f"已添加条件: {params['name']}")
 
-    def _refresh_condition_table(self):
+    def _refresh_condition_table(self) -> None:
         self._cond_table.setRowCount(0)
         for name, ep in self._vm.erds_params.conditions.items():
             row = self._cond_table.rowCount()
@@ -224,16 +225,16 @@ class ERDSWidget(QWidget):
             self._cond_table.setItem(row, 4, QTableWidgetItem(str(ep.reject) if ep.reject else "无"))
 
     @Slot()
-    def _delete_condition(self):
+    def _delete_condition(self) -> None:
         row = self._cond_table.currentRow()
         if row < 0:
             return
-        name = self._cond_table.item(row, 0).text()
+        name = require_table_item(self._cond_table, row, 0).text()
         self._vm.remove_condition(name, "erds")
         self._refresh_condition_table()
 
     @Slot()
-    def _add_band(self):
+    def _add_band(self) -> None:
         row = self._bands_table.rowCount()
         self._bands_table.insertRow(row)
         self._bands_table.setItem(row, 0, QTableWidgetItem(f"Band{row+1}"))
@@ -241,20 +242,25 @@ class ERDSWidget(QWidget):
         self._bands_table.setItem(row, 2, QTableWidgetItem("13"))
 
     @Slot()
-    def _del_band(self):
+    def _del_band(self) -> None:
         rows = sorted(set(item.row() for item in self._bands_table.selectedItems()), reverse=True)
         for row in rows:
             self._bands_table.removeRow(row)
 
-    def _sync_params(self):
+    def _sync_params(self) -> None:
         """同步 UI 参数到 ViewModel"""
         # 频段
         bands = {}
         for row in range(self._bands_table.rowCount()):
-            name = self._bands_table.item(row, 0).text()
+            name_item = self._bands_table.item(row, 0)
+            low_item = self._bands_table.item(row, 1)
+            high_item = self._bands_table.item(row, 2)
+            if name_item is None or low_item is None or high_item is None:
+                continue
+            name = name_item.text()
             try:
-                low = float(self._bands_table.item(row, 1).text())
-                high = float(self._bands_table.item(row, 2).text())
+                low = float(low_item.text())
+                high = float(high_item.text())
                 bands[name] = (low, high)
             except (ValueError, AttributeError):
                 continue
@@ -268,27 +274,33 @@ class ERDSWidget(QWidget):
         self._vm.erds_params.baseline = (
             self._spin_base_tmin.value(), self._spin_base_tmax.value()
         ) if self._chk_baseline.isChecked() else None
-        self._vm.erds_params.baseline_mode = self._cmb_base_mode.currentText()
+        self._vm.erds_params.baseline_mode = BaselineMode(self._cmb_base_mode.currentText())
 
-        # 统计
-        self._vm.erds_params.stats_test = self._cmb_stats.currentText()
+        # 统计（下拉框选项与模型 Literal 一致，错配即程序错误，大声失败）
+        stats_text = self._cmb_stats.currentText()
+        assert stats_text in ("none", "ttest", "permutation"), f"未知统计检验: {stats_text}"
+        self._vm.erds_params.stats_test = cast(
+            Literal["none", "ttest", "permutation"], stats_text)
         self._vm.erds_params.n_permutations = self._spin_perms.value()
-        self._vm.erds_params.correction = self._cmb_correction.currentText()
+        correction_text = self._cmb_correction.currentText()
+        assert correction_text in ("none", "fdr", "cluster"), f"未知多重比较校正: {correction_text}"
+        self._vm.erds_params.correction = cast(
+            Literal["none", "fdr", "cluster"], correction_text)
 
     @Slot()
-    def _run_erds(self):
+    def _run_erds(self) -> None:
         self._sync_params()
         self._vm.run_erds_analysis()
 
     @Slot()
-    def _plot_topomaps(self):
+    def _plot_topomaps(self) -> None:
         if not self._vm._erds_result:
             self.status_message.emit("请先运行 ERD/ERS 分析")
             return
         # 打开地形图选择对话框
         self._show_topomap_dialog()
 
-    def _show_topomap_dialog(self):
+    def _show_topomap_dialog(self) -> None:
         from PySide6.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QComboBox
         dlg = QDialog(self)
         dlg.setWindowTitle("绘制 ERD/ERS 地形图")
@@ -296,7 +308,7 @@ class ERDSWidget(QWidget):
 
         cond_combo = QComboBox()
         if self._vm._erds_result:
-            cond_combo.addItems(self._vm._erds_result.result.avg_tfrs.keys())
+            cond_combo.addItems(list(self._vm._erds_result.result.avg_tfrs.keys()))
         layout.addRow("条件:", cond_combo)
 
         band_combo = QComboBox()
@@ -316,14 +328,14 @@ class ERDSWidget(QWidget):
             )
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         self.status_message.emit(f"ERD/ERS 完成: {list(result.result.tfrs.keys())}")
 
 
 class ERDSConditionDialog(QDialog):
     """ERD/ERS 条件添加对话框"""
 
-    def __init__(self, parent=None, events_list: list[str] = None):
+    def __init__(self, parent: QWidget | None = None, events_list: list[str] | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("添加 ERD/ERS 条件")
         self.setModal(True)
@@ -331,7 +343,7 @@ class ERDSConditionDialog(QDialog):
         self._events_list = events_list or []
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
@@ -386,7 +398,7 @@ class ERDSConditionDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def get_params(self) -> dict:
+    def get_params(self) -> dict[str, Any]:
         events = [item.text() for item in self._lst_events.selectedItems()]
         baseline = None
         if self._chk_baseline.isChecked():

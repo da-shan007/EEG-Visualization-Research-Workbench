@@ -176,7 +176,7 @@ class ICAParams:
     
     # 计算设置
     decim: int = 3                        # 降采样因子 (加速)
-    reject: Optional[dict] = None         # 拒绝阈值 dict(ch_type: threshold)
+    reject: Optional[dict[str, Any]] = None         # 拒绝阈值 dict(ch_type: threshold)
     verbose: bool = False
 
     def validate(self, n_channels: int, sfreq: float) -> list[str]:
@@ -201,7 +201,7 @@ class BadChannelInterpolationParams:
     reset_bads: bool = True             # 插值后重置坏道标记
     verbose: bool = False
 
-    def validate(self, available_channels: list[str], montage_positions: dict) -> list[str]:
+    def validate(self, available_channels: list[str], montage_positions: dict[str, Any]) -> list[str]:
         errors = []
         if not self.bad_channels:
             errors.append("未指定待插值的坏道")
@@ -220,7 +220,7 @@ class BadChannelInterpolationParams:
 class PreprocessingStep:
     """单步预处理记录（用于历史记录/可重现性）"""
     step_type: str                     # 'filter', 'reference', 'resample', 'ica', 'interpolate'
-    params: dict                       # 参数字典
+    params: dict[str, Any]                       # 参数字典
     timestamp: str                     # ISO 格式时间戳
     duration_ms: float                 # 耗时 (ms)
     input_shape: tuple[int, int]       # (n_ch, n_samples)
@@ -246,7 +246,7 @@ REFERENCE_PRESETS = {
 }
 
 
-def create_filter_params(preset: str, **overrides) -> FilterParams:
+def create_filter_params(preset: str, **overrides: Any) -> FilterParams:
     """从预设创建滤波参数"""
     if preset not in FILTER_PRESETS:
         raise ValueError(f"未知预设: {preset}，可选: {list(FILTER_PRESETS.keys())}")
@@ -256,7 +256,7 @@ def create_filter_params(preset: str, **overrides) -> FilterParams:
     return params
 
 
-def create_reference_params(preset: str, **overrides) -> ReferenceParams:
+def create_reference_params(preset: str, **overrides: Any) -> ReferenceParams:
     """从预设创建参考参数"""
     if preset not in REFERENCE_PRESETS:
         raise ValueError(f"未知预设: {preset}，可选: {list(REFERENCE_PRESETS.keys())}")

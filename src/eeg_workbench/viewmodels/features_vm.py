@@ -30,9 +30,9 @@ class FeatureResultUI:
     """UI 显示用的特征结果"""
     feature_type: str
     description: str
-    shape: tuple
+    shape: tuple[int, ...]
     processing_time_ms: float
-    params: dict
+    params: dict[str, Any]
 
 
 class FeaturesViewModel(ViewModelBase):
@@ -53,7 +53,7 @@ class FeaturesViewModel(ViewModelBase):
         data_vm: DataManagementViewModel,
         preproc_vm: PreprocessingViewModel,
         parent: QObject | None = None
-    ):
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._preproc_vm = preproc_vm
@@ -115,7 +115,7 @@ class FeaturesViewModel(ViewModelBase):
         return []
 
     # ---- 参数设置 ----
-    def set_band_power_params(self, **kwargs) -> None:
+    def set_band_power_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._band_power_params, k):
                 setattr(self._band_power_params, k, v)
@@ -123,7 +123,7 @@ class FeaturesViewModel(ViewModelBase):
         if errors:
             self.error_occurred.emit("; ".join(errors))
 
-    def set_tf_params(self, **kwargs) -> None:
+    def set_tf_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._tf_params, k):
                 setattr(self._tf_params, k, v)
@@ -134,12 +134,12 @@ class FeaturesViewModel(ViewModelBase):
         if errors:
             self.error_occurred.emit("; ".join(errors))
 
-    def set_conn_params(self, **kwargs) -> None:
+    def set_conn_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._conn_params, k):
                 setattr(self._conn_params, k, v)
 
-    def set_nonlinear_params(self, **kwargs) -> None:
+    def set_nonlinear_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._nonlinear_params, k):
                 setattr(self._nonlinear_params, k, v)
@@ -250,13 +250,13 @@ class FeaturesViewModel(ViewModelBase):
         return result
 
     @async_slot
-    def run_all_features(self, epochs_data: np.ndarray | None = None) -> dict | None:
+    def run_all_features(self, epochs_data: np.ndarray | None = None) -> dict[str, Any] | None:
         """一键运行所有特征提取"""
         if not self._dataset:
             self.error_occurred.emit("请先加载数据集")
             return None
 
-        results = {}
+        results: dict[str, Any] = {}
         try:
             # 1. 频段功率
             bp = self.run_band_power(epochs_data)
@@ -314,24 +314,32 @@ class FeaturesViewModel(ViewModelBase):
         import numpy as np
         try:
             if feature_type == "all" or feature_type == "band_power":
-                if self._band_power_result:
+                bp = self._band_power_result
+                if bp is not None and bp.band_power is not None:
+                    arrays: Any = bp.band_power
                     np.savez(f"{file_path}_band_power.npz",
-                             **self._band_power_result.band_power)
+                             **arrays)
             if feature_type == "all" or feature_type == "time_frequency":
-                if self._tfr_result:
+                tfr = self._tfr_result
+                if (tfr is not None and tfr.time_frequency is not None
+                        and tfr.tf_freqs is not None and tfr.tf_times is not None):
                     np.savez(f"{file_path}_tfr.npz",
-                             tfr=self._tfr_result.time_frequency,
-                             freqs=self._tfr_result.tf_freqs,
-                             times=self._tfr_result.tf_times)
+                             tfr=tfr.time_frequency,
+                             freqs=tfr.tf_freqs,
+                             times=tfr.tf_times)
             if feature_type == "all" or feature_type == "connectivity":
-                if self._conn_result:
+                conn = self._conn_result
+                if (conn is not None and conn.connectivity is not None
+                        and conn.conn_freqs is not None):
                     np.savez(f"{file_path}_conn.npz",
-                             conn=self._conn_result.connectivity,
-                             freqs=self._conn_result.conn_freqs)
+                             conn=conn.connectivity,
+                             freqs=conn.conn_freqs)
             if feature_type == "all" or feature_type == "nonlinear":
-                if self._nonlinear_result:
+                nl = self._nonlinear_result
+                if nl is not None and nl.nonlinear is not None:
+                    arrays_nl: Any = nl.nonlinear
                     np.savez(f"{file_path}_nonlinear.npz",
-                             **self._nonlinear_result.nonlinear)
+                             **arrays_nl)
 
             self.show_status(f"结果已导出: {file_path}")
             return True
@@ -383,7 +391,7 @@ class FeaturesViewModel(ViewModelBase):
             return f"{len(params.measures)} 指标"
         return name
 
-    def _get_result_shape(self, name: str, result: FeatureExtractionResult) -> tuple:
+    def _get_result_shape(self, name: str, result: FeatureExtractionResult) -> tuple[int, ...]:
         if name == "频段功率" and result.band_power:
             first = next(iter(result.band_power.values()))
             return first.shape
@@ -396,7 +404,7 @@ class FeaturesViewModel(ViewModelBase):
             return first.shape
         return ()
 
-    def _params_to_dict(self, params: Any) -> dict:
+    def _params_to_dict(self, params: Any) -> dict[str, Any]:
         if hasattr(params, "__dataclass_fields__"):
             return {k: getattr(params, k) for k in params.__dataclass_fields__}
         return {}

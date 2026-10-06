@@ -27,7 +27,7 @@ def standard_montage_names() -> list[str]:
 MONTAGE_COMPAT_NAMES = {"standard_1020": "colin27_1020"}
 
 
-def make_standard_montage_compat(name: str, **kwargs):
+def make_standard_montage_compat(name: str, **kwargs: Any) -> Any:
     """跨 MNE 版本的标准蒙版构造，自动处理重命名"""
     import mne
     for cand in (MONTAGE_COMPAT_NAMES.get(name), name):
@@ -222,7 +222,7 @@ def infer_channel_types(ch_names: list[str]) -> dict[str, str]:
 
 
 # ---- 数据校验 ----
-def validate_dataset_integrity(dataset) -> list[str]:
+def validate_dataset_integrity(dataset: Any) -> list[str]:
     """校验数据集完整性，返回警告/错误列表"""
     from eeg_workbench.models.dataset import EEGDataset
     warnings = []

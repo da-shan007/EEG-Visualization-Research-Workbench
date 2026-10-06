@@ -23,13 +23,13 @@ class ExportResult:
     format: ExportFormat
     file_size_bytes: int
     processing_time_ms: float
-    metadata: dict = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 class ExportService:
     """导出服务：统一的多格式导出接口"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.plotting_service = PlottingService()
         self.report_generator = ReportGenerator()
 
@@ -41,7 +41,7 @@ class ExportService:
         format: ExportFormat = ExportFormat.PNG,
         dpi: int = 300,
         bbox_inches: str = "tight",
-        **kwargs
+        **kwargs: Any
     ) -> ExportResult:
         """导出图形为指定格式"""
         start_time = time.perf_counter()
@@ -77,7 +77,7 @@ class ExportService:
             metadata={"dpi": 300}
         )
 
-    def _export_html_fallback(self, figure, output_path: str):
+    def _export_html_fallback(self, figure: Any, output_path: str) -> None:
         """HTML 导出回退方案"""
         import base64
         from io import BytesIO
@@ -113,7 +113,7 @@ class ExportService:
         data: Any,
         output_path: str,
         format: ExportFormat = ExportFormat.CSV,
-        **kwargs
+        **kwargs: Any
     ) -> ExportResult:
         """导出数据"""
         start_time = time.perf_counter()
@@ -140,7 +140,7 @@ class ExportService:
             metadata={}
         )
 
-    def _export_csv(self, data: Any, output_path: str, **kwargs):
+    def _export_csv(self, data: Any, output_path: str, **kwargs: Any) -> None:
         """导出 CSV"""
         import pandas as pd
         
@@ -173,7 +173,7 @@ class ExportService:
         
         df.to_csv(output_path, index=False, encoding='utf-8-sig')
 
-    def _export_json(self, data: Any, output_path: str, **kwargs):
+    def _export_json(self, data: Any, output_path: str, **kwargs: Any) -> None:
         """导出 JSON"""
         if isinstance(data, np.ndarray):
             data = data.tolist()
@@ -183,7 +183,7 @@ class ExportService:
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
-    def _export_npz(self, data: Any, output_path: str, **kwargs):
+    def _export_npz(self, data: Any, output_path: str, **kwargs: Any) -> None:
         """导出 NPZ (NumPy 压缩格式)"""
         if isinstance(data, dict):
             np.savez_compressed(output_path, **data)
@@ -192,7 +192,7 @@ class ExportService:
         else:
             np.savez_compressed(output_path, data=np.array(data))
 
-    def _export_excel(self, data: Any, output_path: str, **kwargs):
+    def _export_excel(self, data: Any, output_path: str, **kwargs: Any) -> None:
         """导出 Excel"""
         import pandas as pd
         
@@ -220,8 +220,8 @@ class ExportService:
         output_path: str,
         format: ExportFormat = ExportFormat.PDF,
         config: Optional[Any] = None,
-        sections_data: dict = None,
-        **kwargs
+        sections_data: dict[str, Any] | None = None,
+        **kwargs: Any
     ) -> ExportResult:
         """导出完整报告"""
         start_time = time.perf_counter()
@@ -237,7 +237,7 @@ class ExportService:
             config.output_path = output_path
             
             generator = ReportGenerator()
-            result = generator.generate(None, config, None)
+            result = generator.generate(dataset, config, sections_data)
             
         elif format == ExportFormat.HTML:
             from eeg_workbench.services.visualization.report_generator import generate_html_report
@@ -248,7 +248,7 @@ class ExportService:
             config.output_format = ExportFormat.HTML
             config.output_path = output_path
             
-            result = generate_html_report(None, config, None)
+            result = generate_html_report(dataset, config, sections_data)
             
         elif format == ExportFormat.DOCX:
             from eeg_workbench.models.visualization import ReportConfig
@@ -287,11 +287,11 @@ class ExportService:
     # ---- 批量导出 ----
     def export_batch(
         self,
-        items: list[dict],  # 每项包含 type, data, path, format
-        **kwargs
+        items: list[dict[str, Any]],  # 每项包含 type, data, path, format
+        **kwargs: Any
     ) -> list[ExportResult]:
         """批量导出多个项目"""
-        results = []
+        results: list[ExportResult] = []
         for item in items:
             try:
                 if item.get('type') == 'figure':
@@ -301,7 +301,7 @@ class ExportService:
                 elif item.get('type') == 'data':
                     result = self.export_data(item['data'], item['path'], item.get('format', ExportFormat.CSV))
                 elif item.get('type') == 'report':
-                    result = self.export_report(None, item['path'], item.get('format', ExportFormat.PDF))
+                    result = self.export_report(item['data'], item['path'], item.get('format', ExportFormat.PDF))
                 else:
                     raise ValueError(f"未知导出类型: {item.get('type')}")
                 results.append(result)
@@ -320,7 +320,7 @@ def export_figure(
     figure: Any,
     output_path: str,
     format: ExportFormat = ExportFormat.PNG,
-    **kwargs
+    **kwargs: Any
 ) -> ExportResult:
     """导出图形的便捷函数"""
     service = ExportService()
@@ -331,7 +331,7 @@ def export_data(
     data: Any,
     output_path: str,
     format: ExportFormat = ExportFormat.CSV,
-    **kwargs
+    **kwargs: Any
 ) -> ExportResult:
     """导出数据的便捷函数"""
     service = ExportService()
@@ -342,8 +342,8 @@ def export_report(
     dataset: EEGDataset,
     output_path: str,
     format: ExportFormat = ExportFormat.PDF,
-    **kwargs
+    **kwargs: Any
 ) -> ExportResult:
     """导出报告的便捷函数"""
     service = ExportService()
-    return service.export_report(None, output_path, format, **kwargs)
+    return service.export_report(dataset, output_path, format, **kwargs)

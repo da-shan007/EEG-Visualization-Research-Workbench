@@ -34,6 +34,11 @@ class ConnectivityMethod(Enum):
     PDC = "pdc"                       # 偏定向传递函数
 
 
+# ---- 具名字面量别名：下拉框固定选项与模型字段共享同一类型 ----
+TFOutput = Literal["power", "phase", "complex"]
+TFBaselineMode = Literal["mean", "ratio", "logratio", "zscore"]
+
+
 class NonlinearMeasure(Enum):
     """非线性指标"""
     SAMPLE_ENTROPY = "sample_entropy"     # 样本熵
@@ -113,9 +118,9 @@ class TimeFrequencyParams:
     window: str = "hann"
     
     # 输出选项
-    output: Literal["power", "phase", "complex"] = "power"
+    output: TFOutput = "power"
     baseline: tuple[float, float] | None = None  # 基线校正 (tmin, tmax)
-    baseline_mode: Literal["mean", "ratio", "logratio", "zscore"] = "logratio"
+    baseline_mode: TFBaselineMode = "logratio"
     decim: int = 1                        # 时间降采样
     
     # 通道选择
@@ -140,7 +145,7 @@ class TimeFrequencyParams:
             errors.append("decim 必须大于 0")
         return errors
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.freqs is None:
             self.freqs = np.logspace(
                 np.log10(self.fmin), np.log10(self.fmax), self.n_freqs
@@ -302,7 +307,7 @@ CUSTOM_BAND_PRESETS: dict[str, dict[str, tuple[float, float]]] = {
 }
 
 
-def create_band_power_params(preset: str = "standard", **overrides) -> BandPowerParams:
+def create_band_power_params(preset: str = "standard", **overrides: Any) -> BandPowerParams:
     """从预设创建频段功率参数"""
     if preset not in CUSTOM_BAND_PRESETS:
         raise ValueError(f"未知预设: {preset}，可选: {list(CUSTOM_BAND_PRESETS.keys())}")

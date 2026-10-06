@@ -2,7 +2,7 @@
 from __future__ import annotations
 import base64
 import io
-from typing import Optional
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
+from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.services.source.preview_plots import (
     fig_stc_topomap, fig_dipoles_2d, fig_sensors_2d, fig_src_cloud,
     extract_sensor_xy, DIPOLE_VIEW_PLANES,
@@ -24,13 +25,13 @@ class Visualization3DWidget(QWidget):
 
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -153,26 +154,26 @@ class Visualization3DWidget(QWidget):
         self._fig_canvas = None
         self._current_fig = None
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.inverse_solution_ready.connect(self._on_inverse_ready)
         self._vm.dipole_fit_ready.connect(self._on_dipole_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_inverse_ready(self, result):
+    def _on_inverse_ready(self, result: Any) -> None:
         self._source_group.setEnabled(True)
         self._btn_source.setChecked(True)
         self._set_vis_type("source")
 
-    def _on_dipole_ready(self, result):
+    def _on_dipole_ready(self, result: Any) -> None:
         self._btn_dipole.setEnabled(True)
         if self._vis_type == "dipole":
             self._render_current()
 
-    def _set_vis_type(self, vis_type: str):
+    def _set_vis_type(self, vis_type: str) -> None:
         self._vis_type = vis_type
         for btn, name in [(self._btn_source, "source"), (self._btn_dipole, "dipole"),
                           (self._btn_connectivity, "connectivity"), (self._btn_montage, "montage")]:
@@ -188,7 +189,7 @@ class Visualization3DWidget(QWidget):
         elif vis_type == "montage":
             self._render_current()
 
-    def _set_view(self, view: str):
+    def _set_view(self, view: str) -> None:
         """视图按钮：切换偶极子 2D 投影平面（标题如实标注平面，非 Brain 视角）。"""
         self._dipole_view = view
         plane = DIPOLE_VIEW_PLANES.get(view, DIPOLE_VIEW_PLANES["dorsal"])[2]
@@ -196,11 +197,11 @@ class Visualization3DWidget(QWidget):
         if self._vis_type == "dipole":
             self._render_current()
 
-    def _on_time_idx_changed(self):
+    def _on_time_idx_changed(self) -> None:
         if self._vis_type == "source":
             self._render_current()
 
-    def _render_current(self):
+    def _render_current(self) -> None:
         """按当前可视化类型渲染内嵌预览；失败只提示不抛错。"""
         try:
             if self._vis_type == "source":
@@ -218,7 +219,7 @@ class Visualization3DWidget(QWidget):
             has_brain = bool(getattr(getattr(self._vm, "_viz", None), "_brain", None))
             self._btn_export_stl.setEnabled(has_brain)
 
-    def _render_source(self):
+    def _render_source(self) -> None:
         inv = self._vm._inverse_result
         if not inv or not inv.stc:
             self._lbl_preview_hint.setText("请先计算逆向解。")
@@ -227,7 +228,7 @@ class Visualization3DWidget(QWidget):
         fig = fig_stc_topomap(inv.stc, idx)
         self._show_fig(fig, f"源估计地形 @ {float(inv.stc.times[idx]) * 1000:.0f} ms")
 
-    def _render_dipoles(self):
+    def _render_dipoles(self) -> None:
         res = self._vm._dipole_result
         if not res:
             self._lbl_preview_hint.setText("请先进行偶极子拟合。")
@@ -235,7 +236,7 @@ class Visualization3DWidget(QWidget):
         fig = fig_dipoles_2d(res.dipoles, view=self._dipole_view)
         self._show_fig(fig, f"偶极子投影（{len(res.dipoles)} 个）")
 
-    def _render_montage(self):
+    def _render_montage(self) -> None:
         if self._vm._dataset is None:
             self._lbl_preview_hint.setText("请先加载数据集。")
             return
@@ -247,7 +248,7 @@ class Visualization3DWidget(QWidget):
         fig = fig_sensors_2d(ch_pos, ch_names)
         self._show_fig(fig, "传感器分布")
 
-    def _render_src_cloud(self):
+    def _render_src_cloud(self) -> None:
         fwd = self._vm._forward_result
         if not fwd:
             self._lbl_preview_hint.setText("请先计算前向模型（连通性矩阵需在特征提取模块计算）。")
@@ -255,13 +256,13 @@ class Visualization3DWidget(QWidget):
         fig = fig_src_cloud(fwd.src)
         self._show_fig(fig, "源点分布")
 
-    def _show_fig(self, fig, hint: str):
+    def _show_fig(self, fig: Any, hint: str) -> None:
         self._current_fig = fig
         self._fig_canvas = embed_figure(self._preview_layout, fig)
         self._lbl_preview_hint.setText(hint)
 
     @Slot()
-    def _screenshot(self):
+    def _screenshot(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         if self._current_fig is None:
             self.status_message.emit("暂无预览图可保存：请先切换可视化类型生成预览")
@@ -275,7 +276,7 @@ class Visualization3DWidget(QWidget):
                 self.status_message.emit(f"截图保存失败: {e}")
 
     @Slot()
-    def _export_html(self):
+    def _export_html(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         if self._current_fig is None:
             self.status_message.emit("暂无预览图可导出：请先切换可视化类型生成预览")
@@ -307,7 +308,7 @@ class Visualization3DWidget(QWidget):
             self.status_message.emit(f"HTML 导出失败: {e}")
 
     @Slot()
-    def _export_stl(self):
+    def _export_stl(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出 STL", "", "STL 文件 (*.stl)")
         if path:
@@ -339,6 +340,6 @@ class Visualization3DWidget(QWidget):
         else:
             self.status_message.emit(f"不支持的场景导出格式: {path}（支持 .html / .stl）")
 
-    def _sync_params(self):
+    def _sync_params(self) -> None:
         # 同步可视化参数
         pass

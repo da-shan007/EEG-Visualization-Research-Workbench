@@ -2,7 +2,7 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Generic
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Generic, ParamSpec, cast
 from weakref import WeakSet
 import uuid
 from threading import Lock
@@ -11,12 +11,14 @@ from PySide6.QtWidgets import QApplication
 
 
 T = TypeVar("T")
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class ObservableModel:
     """可观察模型基类：属性变更自动通知订阅者（用于 MVVM 绑定）"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._observers: WeakSet[Callable[[str, Any, Any], None]] = WeakSet()
         self._lock = Lock()
         self._dirty = False
@@ -68,7 +70,7 @@ class ObservableModel:
 
     @property
     def is_dirty(self) -> bool:
-        return self.__dict__.get("_dirty", False)
+        return bool(self.__dict__.get("_dirty", False))
 
     def mark_clean(self) -> None:
         self._lazy_init()
@@ -82,7 +84,7 @@ class Command(QObject):
     failed = Signal(str)       # error message
     progress = Signal(int, int, str)  # current, total, message
 
-    def __init__(self, func: Callable[..., Any], *args, **kwargs):
+    def __init__(self, func: Callable[..., Any], *args: Any, **kwargs: Any) -> None:
         super().__init__()
         self._func = func
         self._args = args
@@ -134,7 +136,7 @@ class ViewModelBase(QObject):
     error_occurred = Signal(str)
     status_message = Signal(str)
 
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._busy_count = 0
         self._thread_pool = QThreadPool.globalInstance()
@@ -156,11 +158,11 @@ class ViewModelBase(QObject):
         self._active_commands.append(cmd)
         self._set_busy(True)
 
-        def on_finished(result):
+        def on_finished(result: Any) -> None:
             self._active_commands.remove(cmd)
             self._set_busy(False)
 
-        def on_failed(err):
+        def on_failed(err: str) -> None:
             self._active_commands.remove(cmd)
             self._set_busy(False)
             self.error_occurred.emit(err)
@@ -182,14 +184,21 @@ class ViewModelBase(QObject):
 
 
 # 便捷装饰器
-def async_slot(func: Callable) -> Callable:
-    """将同步槽函数包装为异步执行（不阻塞 UI）"""
+def async_slot(func: Callable[P, R]) -> Callable[P, R]:
+    """将同步槽函数包装为异步执行（不阻塞 UI）
+
+    注：被装饰方法在运行时实际返回 Command（异步执行），
+    这里保留原签名是为让调用方的类型检查按同步语义进行；
+    需要真实结果时应连接 Command.finished 信号或读 .result。
+    """
     from functools import wraps
 
     @wraps(func)
-    def wrapper(self: ViewModelBase, *args, **kwargs):
-        cmd = Command(func, self, *args, **kwargs)
-        self.run_command(cmd)
-        return cmd
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
+        cmd = Command(func, *args, **kwargs)
+        # args[0] 即 self（被装饰的 ViewModel）：经它调度执行
+        self_obj = cast(ViewModelBase, args[0])
+        self_obj.run_command(cmd)
+        return cast(R, cmd)
 
     return wrapper

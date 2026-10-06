@@ -90,3 +90,27 @@ python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = false
+
+# 可选依赖（无类型存根，运行时 try/except 懒加载）：找不到存根不报错
+[[tool.mypy.overrides]]
+module = ["docx", "docx.*", "pptx", "pptx.*"]
+ignore_missing_imports = true
+
+# 科学计算栈/报表栈缺类型存根的按 Any 处理（均无 py.typed 或无官方存根）
+# 注意：条目需与 src 实际导入保持一致（warn_unused_configs 会点名未用项；
+# pandas/seaborn/mpld3 只有顶层 import，reportlab/mpl_toolkits 只有子模块导入）
+[[tool.mypy.overrides]]
+module = [
+  "mne", "mne.*",
+  "scipy", "scipy.*",
+  "pandas",
+  "yaml",
+  "seaborn",
+  "reportlab.*",
+  "mpl_toolkits.*",
+  "mpld3",
+  "pingouin",
+  "statsmodels.*",
+  "joblib",
+]
+ignore_missing_imports = true

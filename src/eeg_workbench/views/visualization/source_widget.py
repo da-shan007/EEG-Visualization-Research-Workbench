@@ -1,6 +1,7 @@
 """源定位 3D 可视化面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class SourceVisualizationWidget(QWidget):
 
     status_message = Signal(str)
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -128,24 +129,24 @@ class SourceVisualizationWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.inverse_solution_ready.connect(self._on_inverse_ready)
         self._vm.dipole_fit_ready.connect(self._on_dipole_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_inverse_ready(self, result):
+    def _on_inverse_ready(self, result: Any) -> None:
         self._source_group.setEnabled(True)
         self._btn_source.setChecked(True)
         self._set_vis_type("source")
 
-    def _on_dipole_ready(self, result):
+    def _on_dipole_ready(self, result: Any) -> None:
         self._btn_dipole.setEnabled(True)
 
-    def _set_vis_type(self, vis_type: str):
+    def _set_vis_type(self, vis_type: str) -> None:
         self._vis_type = vis_type
         if vis_type == "source":
             self._source_group.setEnabled(True)
@@ -159,31 +160,31 @@ class SourceVisualizationWidget(QWidget):
         elif vis_type == "montage":
             self.status_message.emit("电极蒙版：请在数据管理中确认 montage 已设置，传感器位置将随源估计一并显示")
 
-    def _set_view(self, view: str):
+    def _set_view(self, view: str) -> None:
         if hasattr(self._vm, '_viz') and self._vm._viz:
             self._vm._viz._brain.show_view(view)
 
     @Slot()
-    def _screenshot(self):
+    def _screenshot(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "保存截图", "", "PNG 图片 (**.png)")
         if path:
             self.status_message.emit(f"截图已保存: {path}")
 
     @Slot()
-    def _export_html(self):
+    def _export_html(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出 HTML", "", "HTML 文件 (*.html)")
         if path:
             self.status_message.emit(f"HTML 已导出: {path}")
 
     @Slot()
-    def _export_stl(self):
+    def _export_stl(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出 STL", "", "STL 文件 (*.stl)")
         if path:
             self.status_message.emit(f"STL 已导出: {path}")
 
-    def _sync_params(self):
+    def _sync_params(self) -> None:
         # 同步可视化参数
         pass

@@ -15,10 +15,10 @@ from eeg_workbench.core.events import get_event_bus, EventType, DatasetLoadedPay
 class LoadResult:
     """加载结果容器"""
     dataset: EEGDataset
-    warnings: list[str] = None
-    metadata: dict[str, Any] = None
+    warnings: list[str] | None = None
+    metadata: dict[str, Any] | None = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.warnings is None:
             self.warnings = []
         if self.metadata is None:
@@ -33,11 +33,11 @@ class BaseReader(ABC):
     FORMAT_NAME: str = "Unknown"
 
     @abstractmethod
-    def read(self, file_path: str, **kwargs) -> LoadResult:
+    def read(self, file_path: str, **kwargs: Any) -> LoadResult:
         """读取文件，返回 LoadResult"""
         pass
 
-    def _create_dataset(self, raw, file_path: str, **kwargs) -> EEGDataset:
+    def _create_dataset(self, raw: Any, file_path: str, **kwargs: Any) -> EEGDataset:
         """通用：从 MNE Raw 构建 EEGDataset"""
         name = kwargs.get("name", Path(file_path).stem)
         ds = EEGDataset.from_mne_raw(raw, name=name, file_path=file_path)
@@ -104,7 +104,7 @@ class ReaderFactory:
         raise ValueError(f"不支持的文件格式: {ext} (文件: {file_path})")
 
     @classmethod
-    def load_dataset(cls, file_path: str, **kwargs) -> LoadResult:
+    def load_dataset(cls, file_path: str, **kwargs: Any) -> LoadResult:
         """统一加载入口"""
         reader = cls.get_reader(file_path)
         return reader.read(file_path, **kwargs)

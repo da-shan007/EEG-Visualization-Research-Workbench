@@ -37,7 +37,7 @@ class ChannelInfo:
     is_bad: bool = False
     custom_meta: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.type, str):
             self.type = ChannelType(self.type.lower())
         if self.location is not None:
@@ -65,7 +65,7 @@ class Event:
     BAD_SEGMENT = "BAD_segment"
     EDGE = "EDGE"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.sample is not None and self.sample < 0:
             raise ValueError("sample 不能为负")
 
@@ -103,7 +103,7 @@ class Montage:
     def has_position(self, ch_name: str) -> bool:
         return ch_name in self.positions
 
-    def to_mne_montage(self):
+    def to_mne_montage(self) -> Any:
         try:
             import mne
             ch_pos = {k: np.array(v) / 1000.0 for k, v in self.positions.items()}
@@ -118,7 +118,7 @@ class Montage:
             return None
 
     @classmethod
-    def from_mne_montage(cls, mne_montage, name: str = "imported") -> Montage:
+    def from_mne_montage(cls, mne_montage: Any, name: str = "imported") -> Montage:
         # mne 1.13 的 DigMontage 不再暴露 ch_pos/nasion/lpa/rpa 属性，统一走 get_positions()
         pos_info = mne_montage.get_positions()
         positions = {}
@@ -143,7 +143,7 @@ class EpochData:
     baseline_corrected: bool = False
     metadata: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if self.data.ndim != 2:
             raise ValueError("data 必须是二维数组 (n_channels, n_times)")
         if len(self.ch_names) != self.data.shape[0]:
@@ -307,7 +307,7 @@ class EEGDataset(ObservableModel):
             processing_history=self.processing_history.copy(),
         )
 
-    def to_mne_raw(self, copy: bool = True, copy_data: bool | None = None):
+    def to_mne_raw(self, copy: bool = True, copy_data: bool | None = None) -> Any:
         try:
             import mne
             if copy_data is not None:
@@ -345,7 +345,7 @@ class EEGDataset(ObservableModel):
             raise RuntimeError(f"转换到 MNE Raw 失败: {e}")
 
     @classmethod
-    def from_mne_raw(cls, raw, name: str | None = None, file_path: str = "") -> EEGDataset:
+    def from_mne_raw(cls, raw: Any, name: str | None = None, file_path: str = "") -> EEGDataset:
         import mne
         data = raw.get_data() * 1e6
         ch_names = raw.ch_names

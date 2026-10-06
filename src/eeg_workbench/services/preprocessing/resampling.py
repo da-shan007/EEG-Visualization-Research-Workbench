@@ -90,7 +90,7 @@ class ResampleService:
         )
 
     @staticmethod
-    def _params_to_dict(params: ResampleParams) -> dict:
+    def _params_to_dict(params: ResampleParams) -> dict[str, Any]:
         return {
             "sfreq": params.sfreq,
             "method": params.method.value,
@@ -99,13 +99,13 @@ class ResampleService:
         }
 
     @classmethod
-    def resample_to(cls, dataset: EEGDataset, sfreq: float, **kwargs) -> ResampleResult:
+    def resample_to(cls, dataset: EEGDataset, sfreq: float, **kwargs: Any) -> ResampleResult:
         """重采样到指定采样率"""
         params = ResampleParams(sfreq=sfreq, **kwargs)
         return cls.apply(dataset, params)
 
     @classmethod
-    def downsample(cls, dataset: EEGDataset, factor: int, **kwargs) -> ResampleResult:
+    def downsample(cls, dataset: EEGDataset, factor: int, **kwargs: Any) -> ResampleResult:
         """整数倍降采样"""
         target_sfreq = dataset.sfreq / factor
         if target_sfreq != int(target_sfreq):
@@ -113,7 +113,7 @@ class ResampleService:
         return cls.resample_to(dataset, target_sfreq, **kwargs)
 
     @classmethod
-    def upsample(cls, dataset: EEGDataset, factor: int, **kwargs) -> ResampleResult:
+    def upsample(cls, dataset: EEGDataset, factor: int, **kwargs: Any) -> ResampleResult:
         """整数倍升采样"""
         target_sfreq = dataset.sfreq * factor
         return cls.resample_to(dataset, target_sfreq, **kwargs)
@@ -122,6 +122,6 @@ class ResampleService:
 def apply_resample(
     dataset: EEGDataset,
     params: ResampleParams,
-    **kwargs
+    **kwargs: Any
 ) -> ResampleResult:
     return ResampleService.apply(dataset, params, **kwargs)

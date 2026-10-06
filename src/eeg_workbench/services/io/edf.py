@@ -12,7 +12,7 @@ class EDFReader(BaseReader):
     EXTENSIONS = (".edf", ".bdf")
     FORMAT_NAME = "EDF/BDF"
 
-    def read(self, file_path: str, **kwargs) -> LoadResult:
+    def read(self, file_path: str, **kwargs: Any) -> LoadResult:
         # 优先用 MNE 读取（自动处理标注、事件、通道类型）
         try:
             import mne
@@ -24,7 +24,7 @@ class EDFReader(BaseReader):
 
         return LoadResult(dataset=self._create_dataset(raw, file_path, **kwargs))
 
-    def _read_with_pyedflib(self, file_path: str, **kwargs) -> Any:
+    def _read_with_pyedflib(self, file_path: str, **kwargs: Any) -> Any:
         """纯 pyedflib 读取，构造 MNE Raw 对象"""
         import pyedflib
         import mne

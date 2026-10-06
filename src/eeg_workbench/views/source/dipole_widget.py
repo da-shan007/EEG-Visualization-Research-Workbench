@@ -1,7 +1,9 @@
 """偶极子拟合面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast, Any
 
+import numpy as np
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
@@ -11,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
-from eeg_workbench.models.source import DipoleFitParams
+from eeg_workbench.models.source import DipoleFitParams, DipoleFitMethod
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -21,13 +23,13 @@ class DipoleFitWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -172,15 +174,15 @@ class DipoleFitWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.dipole_fit_ready.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.dipole_params
         self._block_signals(True)
         try:
@@ -202,7 +204,7 @@ class DipoleFitWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_max_dipoles, self._spin_gof_threshold,
             self._chk_auto_guess, self._spin_guess_x, self._spin_guess_y, self._spin_guess_z,
@@ -212,7 +214,7 @@ class DipoleFitWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         bounds = (
             (self._spin_x_min.value(), self._spin_x_max.value()),
             (self._spin_y_min.value(), self._spin_y_max.value()),
@@ -220,10 +222,11 @@ class DipoleFitWidget(QWidget):
         )
         initial_pos = None
         if not self._chk_auto_guess.isChecked():
-            initial_pos = (self._spin_guess_x.value(), self._spin_guess_y.value(), self._spin_guess_z.value())
+            initial_pos = np.array(
+                (self._spin_guess_x.value(), self._spin_guess_y.value(), self._spin_guess_z.value()))
 
         params = DipoleFitParams(
-            method=self._cmb_method.currentText(),
+            method=cast(DipoleFitMethod, self._cmb_method.currentText()),
             max_dipoles=self._spin_max_dipoles.value(),
             goodness_of_fit_threshold=self._spin_gof_threshold.value(),
             initial_pos=initial_pos,
@@ -233,7 +236,7 @@ class DipoleFitWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_fit(self):
+    def _run_fit(self) -> None:
         if not self._vm._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -244,19 +247,19 @@ class DipoleFitWidget(QWidget):
         self._btn_fit.setText("拟合偶极子")
 
     @Slot()
-    def _run_multi_fit(self):
+    def _run_multi_fit(self) -> None:
         if not self._vm._dataset:
             return
         self._vm.run_dipole_fit()  # 简化：使用同一接口
 
     @Slot()
-    def _plot_dipoles(self):
+    def _plot_dipoles(self) -> None:
         if not self._vm._dipole_result:
             return
         self._vm.plot_dipoles_3d()
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         self._result_table.setRowCount(0)
         for i, dip in enumerate(result.dipoles):
             row = self._result_table.rowCount()

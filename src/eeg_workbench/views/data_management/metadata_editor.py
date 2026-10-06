@@ -1,6 +1,7 @@
 """元数据编辑器 Widget：受试者信息、实验条件、采集参数"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Literal, Optional, cast
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -13,14 +14,14 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QAction
 
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
-from eeg_workbench.models.metadata import SubjectInfo, ExperimentCondition, Sex, GroupType, Handedness
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.models.metadata import SubjectInfo, ExperimentCondition, DatasetMetadata, Sex, GroupType, Handedness
+from eeg_workbench.utils.ui import balance_form, require_table_item
 
 
 class ConditionDialog(QDialog):
     """实验条件编辑对话框"""
 
-    def __init__(self, parent=None, condition: ExperimentCondition = None):
+    def __init__(self, parent: QWidget | None = None, condition: ExperimentCondition | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("编辑实验条件" if condition else "新建实验条件")
         self.setModal(True)
@@ -30,7 +31,7 @@ class ConditionDialog(QDialog):
         if condition:
             self._load_condition(condition)
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         form = QFormLayout()
@@ -102,7 +103,7 @@ class ConditionDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def _load_condition(self, cond: ExperimentCondition):
+    def _load_condition(self, cond: ExperimentCondition) -> None:
         self._edit_name.setText(cond.name)
         self._edit_desc.setPlainText(cond.description)
         self._edit_codes.setText(",".join(map(str, cond.event_codes)))
@@ -129,6 +130,8 @@ class ConditionDialog(QDialog):
         baseline_tmin = self._spin_b_tmin.value() if self._chk_baseline.isChecked() else None
         baseline_tmax = self._spin_b_tmax.value() if self._chk_baseline.isChecked() else None
 
+        trigger = self._cmb_trigger.currentText()
+        assert trigger in ("stimulus", "response", "cue", "custom"), f"未知触发类型: {trigger}"
         return ExperimentCondition(
             name=self._edit_name.text().strip(),
             description=self._edit_desc.toPlainText().strip(),
@@ -138,7 +141,7 @@ class ConditionDialog(QDialog):
             tmax=self._spin_tmax.value(),
             baseline_tmin=baseline_tmin,
             baseline_tmax=baseline_tmax,
-            trigger_type=self._cmb_trigger.currentText(),
+            trigger_type=cast(Literal["stimulus", "response", "cue", "custom"], trigger),
         )
 
 
@@ -148,13 +151,13 @@ class MetadataEditorWidget(QWidget):
     metadata_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
 
@@ -333,22 +336,22 @@ class MetadataEditorWidget(QWidget):
         # 初始禁用（无数据集时）
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.metadata_changed.connect(self._on_metadata_updated)
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self.setEnabled(dataset is not None)
         if dataset and dataset.metadata:
             self._load_metadata(dataset.metadata)
 
     @Slot(object)
-    def _on_metadata_updated(self, metadata):
+    def _on_metadata_updated(self, metadata: DatasetMetadata | None) -> None:
         if metadata:
             self._load_metadata(metadata)
 
-    def _load_metadata(self, meta):
+    def _load_metadata(self, meta: DatasetMetadata) -> None:
         # 防止递归触发
         self._block_signals(True)
         try:
@@ -386,7 +389,7 @@ class MetadataEditorWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._edit_subj_id, self._spin_age, self._cmb_sex, self._cmb_handedness,
             self._cmb_group, self._edit_diagnosis, self._spin_education, self._edit_medication,
@@ -399,10 +402,19 @@ class MetadataEditorWidget(QWidget):
 
     # ---- 受试者变更 ----
     @Slot()
-    def _on_subject_changed(self):
-        if not self._vm.metadata:
+    def _on_subject_changed(self) -> None:
+        meta = self._vm.metadata
+        if meta is None:
+            # 无元数据时回写无处可去（create_subject_info 在此情形下也是空操作）
+            self.status_message.emit("请先加载数据再编辑受试者信息")
+            return
+        if meta.subject is None:
             self._vm.create_subject_info("sub-01")
-        subj = self._vm.metadata.subject
+            meta = self._vm.metadata
+            if meta is None or meta.subject is None:
+                self.status_message.emit("受试者信息初始化失败")
+                return
+        subj = meta.subject
         subj.subject_id = self._edit_subj_id.text()
         subj.age = self._spin_age.value() or None
         subj.sex = Sex(self._cmb_sex.currentText())
@@ -417,7 +429,7 @@ class MetadataEditorWidget(QWidget):
         self.metadata_changed.emit()
 
     @Slot()
-    def _on_acq_changed(self):
+    def _on_acq_changed(self) -> None:
         if not self._vm.metadata:
             return
         meta = self._vm.metadata
@@ -432,7 +444,7 @@ class MetadataEditorWidget(QWidget):
         self.metadata_changed.emit()
 
     @Slot()
-    def _apply_montage(self):
+    def _apply_montage(self) -> None:
         """应用标准蒙太奇到当前数据集（电极位置供地形图/源定位使用）"""
         name = self._cmb_montage.currentText()
         try:
@@ -449,7 +461,7 @@ class MetadataEditorWidget(QWidget):
             self._lbl_montage_status.setStyleSheet("color: #b00;")
 
     @Slot()
-    def _on_task_changed(self):
+    def _on_task_changed(self) -> None:
         if not self._vm.metadata:
             return
         self._vm.metadata.task_description = self._edit_task_desc.toPlainText()
@@ -457,18 +469,19 @@ class MetadataEditorWidget(QWidget):
         self.metadata_changed.emit()
 
     # ---- 条件表格操作 ----
-    def _add_condition_row(self, cond: ExperimentCondition):
+    def _add_condition_row(self, cond: ExperimentCondition) -> None:
         row = self._tbl_conditions.rowCount()
         self._tbl_conditions.insertRow(row)
-        self._tbl_conditions.setItem(row, 0, QTableWidgetItem(cond.name))
+        name_item = QTableWidgetItem(cond.name)
+        self._tbl_conditions.setItem(row, 0, name_item)
         self._tbl_conditions.setItem(row, 1, QTableWidgetItem(cond.description))
         self._tbl_conditions.setItem(row, 2, QTableWidgetItem(",".join(map(str, cond.event_codes))))
         self._tbl_conditions.setItem(row, 3, QTableWidgetItem(f"[{cond.tmin:.2f}, {cond.tmax:.2f}]"))
         self._tbl_conditions.setItem(row, 4, QTableWidgetItem(cond.trigger_type))
-        # 存储完整对象
-        self._tbl_conditions.item(row, 0).setData(Qt.ItemDataRole.UserRole, cond)
+        # 存储完整对象（直接用刚创建的 name_item，不再反查）
+        name_item.setData(Qt.ItemDataRole.UserRole, cond)
 
-    def _add_condition(self):
+    def _add_condition(self) -> None:
         dlg = ConditionDialog(self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             cond = dlg.get_condition()
@@ -479,11 +492,11 @@ class MetadataEditorWidget(QWidget):
             self._add_condition_row(cond)
             self.metadata_changed.emit()
 
-    def _edit_condition(self):
+    def _edit_condition(self) -> None:
         row = self._tbl_conditions.currentRow()
         if row < 0:
             return
-        item = self._tbl_conditions.item(row, 0)
+        item = require_table_item(self._tbl_conditions, row, 0)
         cond = item.data(Qt.ItemDataRole.UserRole)
         dlg = ConditionDialog(self, cond)
         if dlg.exec() == QDialog.DialogCode.Accepted:
@@ -495,20 +508,19 @@ class MetadataEditorWidget(QWidget):
                         self._vm.metadata.conditions[i] = new_cond
                         break
             # 更新表格
-            self._tbl_conditions.item(row, 0).setText(new_cond.name)
-            self._tbl_conditions.item(row, 0).setData(Qt.ItemDataRole.UserRole, new_cond)
-            self._tbl_conditions.item(row, 1).setText(new_cond.description)
-            self._tbl_conditions.item(row, 2).setText(",".join(map(str, new_cond.event_codes)))
-            self._tbl_conditions.item(row, 3).setText(f"[{new_cond.tmin:.2f}, {new_cond.tmax:.2f}]")
-            self._tbl_conditions.item(row, 4).setText(new_cond.trigger_type)
+            require_table_item(self._tbl_conditions, row, 0).setText(new_cond.name)
+            require_table_item(self._tbl_conditions, row, 0).setData(Qt.ItemDataRole.UserRole, new_cond)
+            require_table_item(self._tbl_conditions, row, 1).setText(new_cond.description)
+            require_table_item(self._tbl_conditions, row, 2).setText(",".join(map(str, new_cond.event_codes)))
+            require_table_item(self._tbl_conditions, row, 3).setText(f"[{new_cond.tmin:.2f}, {new_cond.tmax:.2f}]")
+            require_table_item(self._tbl_conditions, row, 4).setText(new_cond.trigger_type)
             self.metadata_changed.emit()
 
-    def _delete_condition(self):
+    def _delete_condition(self) -> None:
         row = self._tbl_conditions.currentRow()
         if row < 0:
             return
-        item = self._tbl_conditions.item(row, 0)
-        cond_name = item.text()
+        cond_name = require_table_item(self._tbl_conditions, row, 0).text()
         if self._vm.metadata:
             self._vm.metadata.conditions = [c for c in self._vm.metadata.conditions if c.name != cond_name]
         self._tbl_conditions.removeRow(row)

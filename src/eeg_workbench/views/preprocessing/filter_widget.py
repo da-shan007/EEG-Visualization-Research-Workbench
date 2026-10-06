@@ -1,6 +1,7 @@
 """滤波面板：带通、高通、低通、陷波、带阻"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class FilterWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -223,16 +224,16 @@ class FilterWidget(QWidget):
 
         return tab
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.filter_params_changed.connect(self._sync_from_vm)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         # 数据集变化时启用/禁用控件
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         """从 ViewModel 同步参数到 UI"""
         params = self._vm.filter_params
 
@@ -268,7 +269,7 @@ class FilterWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._rb_bandpass, self._rb_highpass, self._rb_lowpass,
             self._spin_l_freq, self._spin_h_freq,
@@ -281,23 +282,23 @@ class FilterWidget(QWidget):
             w.blockSignals(block)
 
     @Slot(str)
-    def _on_preset_changed(self, preset: str):
+    def _on_preset_changed(self, preset: str) -> None:
         # 预设改变时不自动应用，等用户点击按钮
         pass
 
     @Slot()
-    def _apply_preset(self):
+    def _apply_preset(self) -> None:
         preset = self._cmb_preset.currentText()
         self._vm.apply_filter_preset(preset)
         self._sync_from_vm()
         self.status_message.emit(f"已应用预设: {preset}")
 
     @Slot()
-    def _on_filter_type_changed(self):
+    def _on_filter_type_changed(self) -> None:
         self._on_param_changed()
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         # 收集当前 UI 状态到 ViewModel
         params = FilterParams()
 
@@ -334,7 +335,7 @@ class FilterWidget(QWidget):
         self._vm.set_filter_params(**self._filter_params_to_dict(params))
         self.params_changed.emit()
 
-    def _filter_params_to_dict(self, params: FilterParams) -> dict:
+    def _filter_params_to_dict(self, params: FilterParams) -> dict[str, Any]:
         return {
             "filter_type": params.filter_type,
             "l_freq": params.l_freq,
@@ -350,11 +351,11 @@ class FilterWidget(QWidget):
         }
 
     @Slot()
-    def _run_filter(self):
+    def _run_filter(self) -> None:
         self._vm.run_filter()
 
     @Slot()
-    def _run_ica_prep(self):
+    def _run_ica_prep(self) -> None:
         self._vm.apply_filter_preset("ica_prep")
         self._sync_from_vm()
         self.status_message.emit("已设置 ICA 预处理滤波 (1Hz 高通 + 50Hz 陷波)")

@@ -1,6 +1,7 @@
 """相关性分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
-from eeg_workbench.models.statistics import CorrelationParams, MultipleComparisonCorrection
+from eeg_workbench.models.statistics import CorrelationParams, MultipleComparisonCorrection, CorrelationMethod, TestAlternative
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -21,13 +22,13 @@ class CorrelationWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -76,17 +77,17 @@ class CorrelationWidget(QWidget):
 
         self._lst_control = QListWidget()
         self._lst_control.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        param_layout = QVBoxLayout()
-        param_layout.addWidget(QLabel("控制变量 (Ctrl+点击多选):"))
-        param_layout.addWidget(self._lst_control)
-        partial_layout.addRow("控制变量:", param_layout)
+        control_vars_layout = QVBoxLayout()
+        control_vars_layout.addWidget(QLabel("控制变量 (Ctrl+点击多选):"))
+        control_vars_layout.addWidget(self._lst_control)
+        partial_layout.addRow("控制变量:", control_vars_layout)
 
         self._lst_target = QListWidget()
         self._lst_target.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-        param_layout2 = QVBoxLayout()
-        param_layout2.addWidget(QLabel("目标变量 (可选，不选则所有非控制变量):"))
-        param_layout2.addWidget(self._lst_target)
-        partial_layout.addRow("目标变量:", param_layout2)
+        target_vars_layout = QVBoxLayout()
+        target_vars_layout.addWidget(QLabel("目标变量 (可选，不选则所有非控制变量):"))
+        target_vars_layout.addWidget(self._lst_target)
+        partial_layout.addRow("目标变量:", target_vars_layout)
         balance_form(partial_layout)
 
         layout.addWidget(self._partial_group)
@@ -132,20 +133,20 @@ class CorrelationWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
     @Slot(str)
-    def _on_method_changed(self, method: str):
+    def _on_method_changed(self, method: str) -> None:
         is_partial = method == "partial"
         self._partial_group.setVisible(is_partial)
         self._on_param_changed()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.corr_params
         self._block_signals(True)
         try:
@@ -156,7 +157,7 @@ class CorrelationWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._cmb_alternative, self._spin_confidence,
             self._cmb_correction
@@ -164,29 +165,29 @@ class CorrelationWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = CorrelationParams(
-            method=self._cmb_method.currentText(),
-            alternative=self._cmb_alternative.currentText(),
+            method=cast(CorrelationMethod, self._cmb_method.currentText()),
+            alternative=cast(TestAlternative, self._cmb_alternative.currentText()),
             confidence_level=self._spin_confidence.value(),
-            correction=self._cmb_correction.currentText(),
+            correction=MultipleComparisonCorrection(self._cmb_correction.currentText()),
             control_variables=[],
         )
         self._vm.set_corr_params(**params.__dict__)
         self.params_changed.emit()
 
     @Slot()
-    def _run_correlation(self):
+    def _run_correlation(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         # 这里需要选择变量并提取数据
         QMessageBox.information(self, "提示", "请先选择变量并提取数据，然后调用 run_correlation 方法")
 
     @Slot()
-    def _run_partial(self):
+    def _run_partial(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "提示", "偏相关需要选择控制变量和目标变量")
 
     @Slot()
-    def _run_eeg_behavior(self):
+    def _run_eeg_behavior(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "提示", "EEG-行为相关性需要特征矩阵和行为数据")

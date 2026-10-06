@@ -34,9 +34,9 @@ class ReportSection:
     """报告章节"""
     title: str
     content: str
-    figures: list = field(default_factory=list)
-    tables: list = field(default_factory=list)
-    subsections: list = field(default_factory=list)
+    figures: list[Any] = field(default_factory=list)
+    tables: list[Any] = field(default_factory=list)
+    subsections: list[Any] = field(default_factory=list)
 
 
 @dataclass
@@ -54,16 +54,16 @@ class ReportResult:
 class ReportGenerator:
     """报告生成器"""
 
-    def __init__(self):
-        self._template_cache: dict = {}
+    def __init__(self) -> None:
+        self._template_cache: dict[str, Any] = {}
 
     def generate(
         self,
         dataset: EEGDataset,
         config: ReportConfig,
-        sections_data: dict[str, ReportSection] = None,
-        **kwargs
-    ):
+        sections_data: dict[str, ReportSection] | None = None,
+        **kwargs: Any,
+    ) -> ReportResult:
         """生成报告"""
         start_time = time.perf_counter()
 
@@ -82,9 +82,9 @@ class ReportGenerator:
         self,
         dataset: EEGDataset,
         config: ReportConfig,
-        sections_data: dict[str, ReportSection] = None,
-        **kwargs
-    ):
+        sections_data: dict[str, ReportSection] | None = None,
+        **kwargs: Any,
+    ) -> ReportResult:
         """生成 PDF 报告 (使用 reportlab)"""
         try:
             from reportlab.lib.pagesizes import A4
@@ -191,7 +191,7 @@ class ReportGenerator:
             file_size_bytes=file_size
         )
 
-    def _generate_pdf_fallback(self, config):
+    def _generate_pdf_fallback(self, config: ReportConfig) -> ReportResult:
         """使用 matplotlib 回退生成 PDF"""
         from matplotlib.backends.backend_pdf import PdfPages
         import matplotlib.pyplot as plt
@@ -235,9 +235,9 @@ class ReportGenerator:
         self,
         dataset: EEGDataset,
         config: ReportConfig,
-        sections_data: dict[str, ReportSection] = None,
-        **kwargs
-    ):
+        sections_data: dict[str, ReportSection] | None = None,
+        **kwargs: Any,
+    ) -> ReportResult:
         """生成 HTML 报告 (交互式)"""
         output_path = config.output_path or _default_report_path("html")
 
@@ -350,14 +350,14 @@ class ReportGenerator:
         """
         return template
 
-    def _fig_to_base64(self, fig) -> str:
+    def _fig_to_base64(self, fig: Any) -> str:
         """将 matplotlib 图形转为 base64"""
         buf = BytesIO()
         fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
         buf.seek(0)
         return base64.b64encode(buf.read()).decode('utf-8')
 
-    def _table_to_html(self, table_data: dict) -> str:
+    def _table_to_html(self, table_data: dict[str, Any]) -> str:
         """将表格数据转为 HTML"""
         if not table_data:
             return ""
@@ -371,7 +371,7 @@ class ReportGenerator:
         html += '</table>'
         return html
 
-    def _create_table(self, table_data: dict, config):
+    def _create_table(self, table_data: dict[str, Any], config: Any) -> Any:
         """创建 reportlab 表格"""
         from reportlab.platypus import Table, TableStyle
         from reportlab.lib import colors
@@ -390,13 +390,19 @@ class ReportGenerator:
         ]))
         return table
 
-    def _save_figure_temp(self, fig) -> str:
+    def _save_figure_temp(self, fig: Any) -> str:
         """保存图形为临时文件"""
         tmp = tempfile.NamedTemporaryFile(suffix='.png', delete=False)
         fig.savefig(tmp.name, dpi=150, bbox_inches='tight')
         return tmp.name
 
-    def _generate_docx(self, dataset, config, sections_data, **kwargs):
+    def _generate_docx(
+        self,
+        dataset: EEGDataset,
+        config: ReportConfig,
+        sections_data: dict[str, ReportSection] | None = None,
+        **kwargs: Any,
+    ) -> ReportResult:
         """生成 DOCX 报告 (需要 python-docx: pip install python-docx)"""
         try:
             from docx import Document
@@ -451,7 +457,13 @@ class ReportGenerator:
             file_size_bytes=Path(output_path).stat().st_size,
         )
 
-    def _generate_pptx(self, dataset, config, sections_data, **kwargs):
+    def _generate_pptx(
+        self,
+        dataset: EEGDataset,
+        config: ReportConfig,
+        sections_data: dict[str, ReportSection] | None = None,
+        **kwargs: Any,
+    ) -> ReportResult:
         """生成 PPTX 报告 (需要 python-pptx: pip install python-pptx)"""
         try:
             from pptx import Presentation
@@ -502,8 +514,8 @@ class ReportGenerator:
 def generate_report(
     dataset: EEGDataset,
     config: ReportConfig,
-    sections_data: dict[str, ReportSection] = None,
-    **kwargs
+    sections_data: dict[str, ReportSection] | None = None,
+    **kwargs: Any
 ) -> ReportResult:
     """生成报告的便捷函数"""
     generator = ReportGenerator()
@@ -513,8 +525,8 @@ def generate_report(
 def generate_html_report(
     dataset: EEGDataset,
     config: ReportConfig,
-    sections_data: dict[str, ReportSection] = None,
-    **kwargs
+    sections_data: dict[str, ReportSection] | None = None,
+    **kwargs: Any
 ) -> ReportResult:
     """生成 HTML 报告的便捷函数"""
     config.output_format = ExportFormat.HTML

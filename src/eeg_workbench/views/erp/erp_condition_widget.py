@@ -1,6 +1,7 @@
 """ERP 条件设置面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -13,7 +14,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.erp_vm import ERPViewModel
 from eeg_workbench.models.erp import EpochParams, ERPComponent, DEFAULT_ERP_PEAK_WINDOWS, DEFAULT_ERP_POLARITY
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.utils.ui import balance_form, require_table_item
 
 
 class ERPConditionWidget(QWidget):
@@ -22,13 +23,13 @@ class ERPConditionWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -132,14 +133,14 @@ class ERPConditionWidget(QWidget):
         # 初始化峰值表格
         self._populate_peak_table()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _populate_peak_table(self):
+    def _populate_peak_table(self) -> None:
         """填充默认峰值参数"""
         self._peak_table.setRowCount(0)
         for comp in [
@@ -161,7 +162,7 @@ class ERPConditionWidget(QWidget):
             self._peak_table.setCellWidget(row, 4, chk)
 
     @Slot()
-    def _add_condition_dialog(self):
+    def _add_condition_dialog(self) -> None:
         dlg = ConditionDialog(self, events_list=self._vm.events_list)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             params = dlg.get_params()
@@ -176,24 +177,24 @@ class ERPConditionWidget(QWidget):
             self.status_message.emit(f"已添加条件: {params['name']}")
 
     @Slot()
-    def _edit_condition(self):
+    def _edit_condition(self) -> None:
         row = self._cond_table.currentRow()
         if row < 0:
             return
-        name = self._cond_table.item(row, 0).text()
+        name = require_table_item(self._cond_table, row, 0).text()
         # 这里需要实现编辑对话框
         self.status_message.emit("编辑功能待实现")
 
     @Slot()
-    def _delete_condition(self):
+    def _delete_condition(self) -> None:
         row = self._cond_table.currentRow()
         if row < 0:
             return
-        name = self._cond_table.item(row, 0).text()
+        name = require_table_item(self._cond_table, row, 0).text()
         self._vm.remove_condition(name, "erp")
         self._refresh_condition_table()
 
-    def _refresh_condition_table(self):
+    def _refresh_condition_table(self) -> None:
         self._cond_table.setRowCount(0)
         for name, ep in self._vm.erp_params.conditions.items():
             row = self._cond_table.rowCount()
@@ -206,14 +207,14 @@ class ERPConditionWidget(QWidget):
             self._cond_table.setItem(row, 5, QTableWidgetItem("是" if ep.apply_ica else "否"))
 
     @Slot()
-    def _add_contrast_dialog(self):
+    def _add_contrast_dialog(self) -> None:
         dlg = ContrastDialog(self, conditions=list(self._vm.erp_params.conditions.keys()))
         if dlg.exec() == QDialog.DialogCode.Accepted:
             a, b = dlg.get_contrast()
             self._vm.add_contrast(a, b)
             self._refresh_contrast_table()
 
-    def _refresh_contrast_table(self):
+    def _refresh_contrast_table(self) -> None:
         self._contrast_list.setRowCount(0)
         for a, b in self._vm.erp_params.contrast_pairs:
             row = self._contrast_list.rowCount()
@@ -222,7 +223,7 @@ class ERPConditionWidget(QWidget):
             self._contrast_list.setItem(row, 1, QTableWidgetItem(b))
 
     @Slot()
-    def _delete_contrast(self):
+    def _delete_contrast(self) -> None:
         row = self._contrast_list.currentRow()
         if row < 0:
             return
@@ -230,7 +231,7 @@ class ERPConditionWidget(QWidget):
         pass
 
     @Slot()
-    def _reset_peak_defaults(self):
+    def _reset_peak_defaults(self) -> None:
         self._populate_peak_table()
         self.status_message.emit("已重置为默认峰值参数")
 
@@ -238,7 +239,7 @@ class ERPConditionWidget(QWidget):
 class ConditionDialog(QDialog):
     """添加/编辑条件对话框"""
 
-    def __init__(self, parent=None, events_list: list[str] = None, condition: dict = None):
+    def __init__(self, parent: QWidget | None = None, events_list: list[str] | None = None, condition: dict[str, Any] | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("添加条件" if not condition else "编辑条件")
         self.setModal(True)
@@ -249,7 +250,7 @@ class ConditionDialog(QDialog):
         if condition:
             self._load_condition(condition)
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         form = QFormLayout()
 
@@ -315,7 +316,7 @@ class ConditionDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def _load_condition(self, cond: dict):
+    def _load_condition(self, cond: dict[str, Any]) -> None:
         self._edit_name.setText(cond.get("name", ""))
         events = cond.get("event_descriptions", [])
         for i in range(self._lst_events.count()):
@@ -330,7 +331,7 @@ class ConditionDialog(QDialog):
         self._chk_ica.setChecked(cond.get("apply_ica", False))
         self._spin_resample.setValue(cond.get("resample_sfreq", 0))
 
-    def get_params(self) -> dict:
+    def get_params(self) -> dict[str, Any]:
         events = [item.text() for item in self._lst_events.selectedItems()]
         baseline = None
         if self._chk_baseline.isChecked():
@@ -349,14 +350,14 @@ class ConditionDialog(QDialog):
 class ContrastDialog(QDialog):
     """添加对比对话框"""
 
-    def __init__(self, parent=None, conditions: list[str] = None):
+    def __init__(self, parent: QWidget | None = None, conditions: list[str] | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("添加差分对比")
         self.setModal(True)
         self._conditions = conditions or []
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         form = QFormLayout()
 

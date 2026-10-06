@@ -6,6 +6,17 @@ from enum import Enum
 import numpy as np
 
 
+# 下拉框/配置共用的字面值别名：GUI 固定选项与这些值逐字对应，
+# widget 侧用 cast() 标注 currentText()，运行时 round-trip 安全。
+XScale = Literal["linear", "log"]
+SpectralMethod = Literal["welch", "multitaper", "periodogram", "fft"]
+TFRMethod = Literal["morlet", "multitaper", "stockwell"]
+GraphLayout = Literal["circular", "spring", "kamada_kawai", "spectral", "random"]
+StatPlotType = Literal["bar", "violin", "box", "raincloud", "forest", "effect_size"]
+TimeUnit = Literal["s", "ms", "us"]
+WaveformPicks = list[int] | list[str] | Literal["all", "eeg", "eog", "ecg"]
+
+
 class PlotType(Enum):
     """绘图类型"""
     # 波形图
@@ -92,7 +103,7 @@ class PlotConfig:
     # 布局
     tight_layout: bool = True
     constrained_layout: bool = False
-    subplot_adjust: dict = field(default_factory=dict)
+    subplot_adjust: dict[str, Any] = field(default_factory=dict)
     
     # 交互
     interactive: bool = False
@@ -108,10 +119,10 @@ class WaveformPlotConfig(PlotConfig):
     # 时间轴
     tmin: float | None = None
     tmax: float | None = None
-    time_unit: Literal["s", "ms", "us"] = "s"
+    time_unit: TimeUnit = "s"
     
     # 通道
-    picks: list[int] | list[str] | Literal["all", "eeg", "eog", "ecg"] = "eeg"
+    picks: WaveformPicks = "eeg"
     n_channels_per_plot: int = 20
     
     # 样式
@@ -140,10 +151,10 @@ class SpectralPlotConfig(PlotConfig):
     # 频率范围
     fmin: float = 0
     fmax: float = 100
-    xscale: Literal["linear", "log"] = "linear"
+    xscale: XScale = "linear"
     
-    # 方法
-    method: Literal["welch", "multitaper", "fft"] = "welch"
+    # 方法（与频谱组件下拉框四选项一致；multitaper 暂走 FFT 分支实现）
+    method: SpectralMethod = "welch"
     n_fft: int = 256
     n_overlap: int = 128
     
@@ -168,7 +179,7 @@ class TFRPlotConfig(PlotConfig):
     tmax: float | None = None
 
     # 变换方法
-    method: Literal["morlet", "multitaper", "stockwell"] = "morlet"
+    method: TFRMethod = "morlet"
     n_cycles: float = 7.0
 
     # 基线
@@ -198,7 +209,7 @@ class ConnectivityPlotConfig(PlotConfig):
     # 图
     show_graph: bool = False
     graph_threshold: float = 0.5
-    graph_layout: Literal["circular", "spring", "kamada_kawai", "spectral"] = "circular"
+    graph_layout: GraphLayout = "circular"
     node_size: float = 100
     edge_width_scale: float = 2.0
     
@@ -234,7 +245,7 @@ class TFRParams:
 class StatisticalPlotConfig(PlotConfig):
     """统计图配置"""
     # 类型
-    plot_type: Literal["bar", "violin", "box", "raincloud", "forest", "effect_size"] = "bar"
+    plot_type: StatPlotType = "bar"
     
     # 效应量
     effect_size_type: str = "cohen_d"
@@ -334,7 +345,7 @@ SOURCE_PRESET = SourcePlotConfig()
 REPORT_PRESET = ReportConfig()
 
 
-def create_plot_config(plot_type: PlotType, **overrides) -> PlotConfig:
+def create_plot_config(plot_type: PlotType, **overrides: Any) -> PlotConfig:
     """从预设创建绘图配置"""
     presets = {
         PlotType.RAW_WAVEFORM: WAVEFORM_PRESET,

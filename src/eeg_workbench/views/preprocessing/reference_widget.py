@@ -1,6 +1,7 @@
 """重参考面板：平均参考、乳突参考、Cz、单电极、REST、自定义"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -21,13 +22,13 @@ class ReferenceWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -134,17 +135,17 @@ class ReferenceWidget(QWidget):
 
         return widget
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.available_channels_changed.connect(self._update_channel_list)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
             self._update_channel_list(dataset.ch_names)
 
-    def _update_channel_list(self, channels: list[str]):
+    def _update_channel_list(self, channels: list[str]) -> None:
         self._lst_available.clear()
         for ch in channels:
             item = QListWidgetItem(ch)
@@ -153,7 +154,7 @@ class ReferenceWidget(QWidget):
             self._lst_available.addItem(item)
         self._lst_selected.clear()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.reference_params
         self._block_signals(True)
         try:
@@ -165,24 +166,24 @@ class ReferenceWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [self._cmb_ref_type, self._chk_projection, self._cmb_preset]:
             w.blockSignals(block)
 
     @Slot(str)
-    def _on_preset_changed(self, preset: str):
+    def _on_preset_changed(self, preset: str) -> None:
         # 预设下拉变化时仅提示说明，实际应用仍由"应用预设"按钮触发
         self.status_message.emit(f"已选择参考预设: {preset}，点击应用后生效")
 
     @Slot()
-    def _apply_preset(self):
+    def _apply_preset(self) -> None:
         preset = self._cmb_preset.currentText()
         self._vm.apply_reference_preset(preset)
         self._sync_from_vm()
         self.status_message.emit(f"已应用预设: {preset}")
 
     @Slot(str)
-    def _on_ref_type_changed(self, ref_type_str: str):
+    def _on_ref_type_changed(self, ref_type_str: str) -> None:
         ref_type = ReferenceType(ref_type_str)
         params = self._vm.reference_params
         params.ref_type = ref_type
@@ -205,19 +206,19 @@ class ReferenceWidget(QWidget):
         self._on_param_changed()
 
     @Slot()
-    def _add_channels(self):
+    def _add_channels(self) -> None:
         for item in self._lst_available.selectedItems():
             ch = item.data(Qt.ItemDataRole.UserRole)
             if not self._find_in_selected(ch):
                 self._lst_selected.addItem(ch)
 
     @Slot()
-    def _remove_channels(self):
+    def _remove_channels(self) -> None:
         for item in self._lst_selected.selectedItems():
             self._lst_selected.takeItem(self._lst_selected.row(item))
 
     @Slot()
-    def _clear_selected(self):
+    def _clear_selected(self) -> None:
         self._lst_selected.clear()
 
     def _find_in_selected(self, channel: str) -> bool:
@@ -227,7 +228,7 @@ class ReferenceWidget(QWidget):
         return False
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = self._vm.reference_params
         params.ref_type = ReferenceType(self._cmb_ref_type.currentText())
         params.projection = self._chk_projection.isChecked()
@@ -241,7 +242,7 @@ class ReferenceWidget(QWidget):
         self._vm.set_reference_params(**self._reference_params_to_dict(params))
         self.params_changed.emit()
 
-    def _reference_params_to_dict(self, params: ReferenceParams) -> dict:
+    def _reference_params_to_dict(self, params: ReferenceParams) -> dict[str, Any]:
         return {
             "ref_type": params.ref_type,
             "ref_channels": params.ref_channels,
@@ -249,5 +250,5 @@ class ReferenceWidget(QWidget):
         }
 
     @Slot()
-    def _run_reference(self):
+    def _run_reference(self) -> None:
         self._vm.run_reference()

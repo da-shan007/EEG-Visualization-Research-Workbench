@@ -18,14 +18,14 @@ class EditorAction:
     index: int = -1
     old_event: Optional[Event] = None
     new_event: Optional[Event] = None
-    events: list[Event] = None  # 批量操作时用
+    events: Optional[list[Event]] = None  # 批量操作时用
     description: str = ""
 
 
 class EventEditor:
     """事件编辑器：管理单个 EEGDataset 的事件列表，支持撤销/重做"""
 
-    def __init__(self, dataset: EEGDataset):
+    def __init__(self, dataset: EEGDataset) -> None:
         self._dataset = dataset
         self._undo_stack: list[EditorAction] = []
         self._redo_stack: list[EditorAction] = []
@@ -284,27 +284,33 @@ class EventEditor:
         if action.action_type == "add":
             return self._dataset.remove_event(action.index)
         elif action.action_type == "remove":
+            assert action.old_event is not None, "撤销删除需要 old_event"
             events = self._dataset.events.copy()
             events.insert(action.index, action.old_event)
             return replace(self._dataset, events=events)
         elif action.action_type == "update":
+            assert action.old_event is not None, "撤销更新需要 old_event"
             events = self._dataset.events.copy()
             events[action.index] = action.old_event
             return replace(self._dataset, events=events)
         elif action.action_type == "batch":
+            assert action.events is not None, "撤销批量操作需要 events"
             return replace(self._dataset, events=action.events)
         return self._dataset
 
     def _apply_action(self, action: EditorAction) -> EEGDataset:
         if action.action_type == "add":
+            assert action.new_event is not None, "新增事件需要 new_event"
             events = self._dataset.events.copy()
             events.insert(action.index, action.new_event)
             return replace(self._dataset, events=events)
         elif action.action_type == "remove":
             return self._dataset.remove_event(action.index)
         elif action.action_type == "update":
+            assert action.new_event is not None, "更新事件需要 new_event"
             return self._dataset.update_event(action.index, action.new_event)
         elif action.action_type == "batch":
+            assert action.events is not None, "批量操作需要 events"
             return replace(self._dataset, events=action.events)
         return self._dataset
 

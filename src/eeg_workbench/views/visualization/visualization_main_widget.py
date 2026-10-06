@@ -1,6 +1,6 @@
 """主可视化面板：整合波形、频谱、时频、连通性、统计、源定位、报告"""
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Any
 from pathlib import Path
 
 from PySide6.QtCore import Signal, Slot, Qt
@@ -34,14 +34,14 @@ class VisualizationMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -110,7 +110,7 @@ class VisualizationMainWidget(QWidget):
         self._fig_container = QWidget()
         self._fig_container_layout = QVBoxLayout(self._fig_container)
         self._fig_container_layout.setContentsMargins(0, 0, 0, 0)
-        self._fig_canvas = None  # 当前 FigureCanvasQTAgg
+        self._fig_canvas: Any = None  # 当前 FigureCanvasQTAgg
         self._fig_container.setMinimumHeight(200)
         fig_layout.addWidget(self._fig_container, 1)
 
@@ -138,7 +138,7 @@ class VisualizationMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.status_message.connect(self.status_message.emit)
         fig_sig = getattr(self._vm, "figure_ready", None)
@@ -153,7 +153,7 @@ class VisualizationMainWidget(QWidget):
                 sig.connect(slot)
 
     @Slot(object)
-    def _on_figure_ready(self, result):
+    def _on_figure_ready(self, result: Any) -> None:
         """figure_ready 槽：把绘制结果显示到共享画布，并切到对应标签页。"""
         if result is None:
             return
@@ -193,29 +193,29 @@ class VisualizationMainWidget(QWidget):
                 self._fig_container_layout.removeWidget(self._fig_canvas)
                 self._fig_canvas.deleteLater()
                 self._fig_canvas = None
-            canvas = FigureCanvasQTAgg(fig)
+            canvas = FigureCanvasQTAgg(fig)  # type: ignore[no-untyped-call]
             self._fig_canvas = canvas
             self._fig_container_layout.addWidget(canvas)
-            canvas.draw_idle()
+            canvas.draw_idle()  # type: ignore[no-untyped-call]
         else:
             self._lbl_fig_title.setText(
                 f"当前图形: {title} 为 3D/交互类型，已在独立窗口中打开"
             )
 
     @Slot(str)
-    def _on_export_finished(self, path: str):
+    def _on_export_finished(self, path: str) -> None:
         self._export_progress.setVisible(False)
         self._export_progress.setRange(0, 100)
         self._export_progress.setValue(100)
         self._lbl_export_status.setText(f"已导出: {path}")
 
     @Slot(str)
-    def _on_export_failed(self, message: str):
+    def _on_export_failed(self, message: str) -> None:
         self._export_progress.setVisible(False)
         self._lbl_export_status.setText(f"失败: {message}")
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -238,7 +238,7 @@ class VisualizationMainWidget(QWidget):
         self.status_message.emit(f"已定位到事件: {desc} @ {time:.3f}s")
 
     @Slot()
-    def _export_current_figure(self):
+    def _export_current_figure(self) -> None:
         current_tab = self._tabs.currentIndex()
         tab_names = ["波形图", "频谱图", "时频图", "连通性", "统计图", "源定位", "报告生成"]
 
@@ -261,7 +261,7 @@ class VisualizationMainWidget(QWidget):
         self._vm.export_figure(path=path)
 
     @Slot()
-    def _generate_report_dialog(self):
+    def _generate_report_dialog(self) -> None:
         """生成报告对话框"""
         from PySide6.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QCheckBox, QLineEdit, QSpinBox, QComboBox
 
@@ -324,7 +324,7 @@ class VisualizationMainWidget(QWidget):
             )
 
     @Slot()
-    def _generate_report(self, title, author, format_str, include_toc, include_methods, include_results, dpi):
+    def _generate_report(self, title: str, author: str, format_str: str, include_toc: bool, include_methods: bool, include_results: bool, dpi: int) -> None:
         """生成报告"""
         from eeg_workbench.models.visualization import ReportConfig, ExportFormat
 

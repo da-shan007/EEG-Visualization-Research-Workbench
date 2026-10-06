@@ -62,11 +62,11 @@ class ERDSService:
             raise ValueError("未提取到任何 Epochs")
 
         # 2. 计算时频图
-        freqs = []
+        freq_list: list[float] = []
         for fmin, fmax in params.bands.values():
             band_freqs = np.linspace(fmin, fmax, max(5, int((fmax - fmin) / 2)))
-            freqs.extend(band_freqs)
-        freqs = np.unique(freqs)
+            freq_list.extend(float(f) for f in band_freqs)
+        freqs = np.unique(freq_list)
 
         for cond_name, epochs in epochs_dict.items():
             if params.tf_method == "morlet":
@@ -142,7 +142,7 @@ class ERDSService:
         )
 
     @staticmethod
-    def _find_events(raw, ep_params: EpochParams) -> tuple:
+    def _find_events(raw: Any, ep_params: EpochParams) -> tuple[np.ndarray, dict[str, Any]]:
         import mne
         events, event_id = mne.events_from_annotations(raw)
         
@@ -162,10 +162,10 @@ class ERDSService:
 
     @staticmethod
     def _compute_band_erds(
-        avg_tfrs: dict, bands: dict[str, tuple[float, float]]
+        avg_tfrs: dict[str, Any], bands: dict[str, tuple[float, float]]
     ) -> dict[str, dict[str, np.ndarray]]:
         """计算各频段的平均 ERD/ERS"""
-        band_erds = {}
+        band_erds: dict[str, dict[str, np.ndarray]] = {}
         
         for cond_name, tfr in avg_tfrs.items():
             band_erds[cond_name] = {}
@@ -186,9 +186,9 @@ class ERDSService:
         return band_erds
 
     @staticmethod
-    def _statistical_test(tfrs: dict, params: ERDSParams) -> dict:
+    def _statistical_test(tfrs: dict[str, Any], params: ERDSParams) -> dict[str, Any]:
         """统计检验"""
-        stats = {}
+        stats: dict[str, Any] = {}
         
         if params.stats_test == "permutation":
             try:
@@ -208,6 +208,6 @@ class ERDSService:
 def run_erds_analysis(
     dataset: EEGDataset,
     params: ERDSParams,
-    **kwargs
+    **kwargs: Any
 ) -> ERDSAnalysisResult:
     return ERDSService.analyze(dataset, params, **kwargs)

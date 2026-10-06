@@ -51,7 +51,7 @@ class SubjectInfo:
     medication: str = ""               # 用药情况
     custom_fields: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.sex, str):
             self.sex = Sex(self.sex.upper())
         if isinstance(self.handedness, str):
@@ -167,7 +167,7 @@ class DatasetMetadata:
     # 扩展
     custom_meta: dict[str, Any] = field(default_factory=dict)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if isinstance(self.recording_date, str):
             self.recording_date = datetime.fromisoformat(self.recording_date).date()
 

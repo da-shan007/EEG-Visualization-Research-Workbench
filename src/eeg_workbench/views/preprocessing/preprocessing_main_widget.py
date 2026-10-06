@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.utils.ui import wrap_scroll
-from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
+from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel, PreprocessingStepUI
 from .filter_widget import FilterWidget
 from .ica_widget import ICAWidget
 from .interpolation_widget import InterpolationWidget
@@ -25,14 +25,14 @@ class PreprocessingMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -107,7 +107,7 @@ class PreprocessingMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         # ViewModel 信号
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.preprocessing_steps_changed.connect(self._update_history)
@@ -121,7 +121,7 @@ class PreprocessingMainWidget(QWidget):
         self._interp_widget.status_message.connect(self.status_message.emit)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -140,7 +140,7 @@ class PreprocessingMainWidget(QWidget):
         self.dataset_changed.emit(dataset)
 
     @Slot(list)
-    def _update_history(self, steps: list):
+    def _update_history(self, steps: list[PreprocessingStepUI]) -> None:
         self._history_list.clear()
         for step in steps:
             status = "✓" if step.applied else "○"
@@ -149,7 +149,7 @@ class PreprocessingMainWidget(QWidget):
             self._history_list.addItem(item)
 
     @Slot()
-    def _run_standard_pipeline(self):
+    def _run_standard_pipeline(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -174,7 +174,7 @@ class PreprocessingMainWidget(QWidget):
             self._btn_standard_pipeline.setText("标准流程")
 
     @Slot()
-    def _reset_dataset(self):
+    def _reset_dataset(self) -> None:
         if not self._dataset:
             return
         reply = QMessageBox.question(
@@ -188,21 +188,21 @@ class PreprocessingMainWidget(QWidget):
             self.status_message.emit("重置功能需要数据管理模块支持")
 
     @Slot()
-    def _undo_last(self):
+    def _undo_last(self) -> None:
         if self._vm.undo_last_step():
             self.status_message.emit("已撤销最后一步")
         else:
             self.status_message.emit("无法撤销")
 
     @Slot()
-    def _export_pipeline(self):
+    def _export_pipeline(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出预处理流程", "", "JSON 文件 (*.json)")
         if path:
             self._vm.export_pipeline(path)
 
     @Slot()
-    def _import_pipeline(self):
+    def _import_pipeline(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(self, "导入预处理流程", "", "JSON 文件 (*.json)")
         if path:

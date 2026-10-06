@@ -1,6 +1,6 @@
 """源定位主面板：整合头模型、前向模型、逆向解、偶极子拟合、3D可视化"""
 from __future__ import annotations
-from typing import Optional
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -25,14 +25,14 @@ class SourceMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -95,7 +95,7 @@ class SourceMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.head_model_ready.connect(self._on_head_model_ready)
         self._vm.forward_model_ready.connect(self._on_forward_ready)
@@ -111,7 +111,7 @@ class SourceMainWidget(QWidget):
         )
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -128,36 +128,36 @@ class SourceMainWidget(QWidget):
         self.dataset_changed.emit(dataset)
 
     @Slot(object)
-    def _on_head_model_ready(self, result):
+    def _on_head_model_ready(self, result: Any) -> None:
         self._add_history(f"头模型: {result.model_type.value} ({result.subject})")
         self._tabs.setTabEnabled(1, True)  # 启用前向模型标签
         self.status_message.emit(f"头模型构建完成 ({result.model_type.value})")
 
     @Slot(object)
-    def _on_forward_ready(self, result):
+    def _on_forward_ready(self, result: Any) -> None:
         info = result.leadfield_info
         self._add_history(f"前向模型: {info['n_sources']} 源 × {info['n_channels']} 通道")
         self._tabs.setTabEnabled(2, True)  # 启用逆向解标签
         self.status_message.emit("前向模型计算完成")
 
     @Slot(object)
-    def _on_inverse_ready(self, result):
+    def _on_inverse_ready(self, result: Any) -> None:
         self._add_history(f"逆向解: {result.method}")
         self._tabs.setTabEnabled(3, True)  # 启用偶极子拟合标签
         self._tabs.setTabEnabled(4, True)  # 启用 3D 可视化标签
         self.status_message.emit(f"逆向解计算完成 ({result.method})")
 
     @Slot(object)
-    def _on_dipole_ready(self, result):
+    def _on_dipole_ready(self, result: Any) -> None:
         self._add_history(f"偶极子拟合: {len(result.dipoles)} 个")
         self.status_message.emit(f"偶极子拟合完成: {len(result.dipoles)} 个")
 
-    def _add_history(self, desc: str):
+    def _add_history(self, desc: str) -> None:
         item = QListWidgetItem(f"✓ {desc}")
         self._history_list.addItem(item)
 
     @Slot()
-    def _run_full_pipeline(self):
+    def _run_full_pipeline(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -181,7 +181,7 @@ class SourceMainWidget(QWidget):
             self._btn_full_pipeline.setText("一键完整流程")
 
     @Slot()
-    def _export_scene(self):
+    def _export_scene(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出 3D 场景", "", "HTML 文件 (*.html);;STL 文件 (*.stl)")
         if path:

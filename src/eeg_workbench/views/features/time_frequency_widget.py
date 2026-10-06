@@ -1,7 +1,9 @@
 """时频分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast, Any
 
+import numpy as np
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QFormLayout,
@@ -10,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
-from eeg_workbench.models.features import TimeFrequencyParams, TimeFrequencyMethod
+from eeg_workbench.models.features import TimeFrequencyParams, TimeFrequencyMethod, TFOutput, TFBaselineMode
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -20,13 +22,13 @@ class TimeFrequencyWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -195,21 +197,21 @@ class TimeFrequencyWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.tfr_result.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_method_changed(self, method: str):
+    def _on_method_changed(self, method: str) -> None:
         # 显示/隐藏对应参数组
         self._morlet_group.setVisible(method == "morlet")
         self._stft_group.setVisible(method == "stft")
         self._mt_group.setVisible(method == "multitaper")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.tf_params
         self._block_signals(True)
         try:
@@ -235,7 +237,7 @@ class TimeFrequencyWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_fmin, self._spin_fmax, self._spin_n_freqs,
             self._edit_custom_freqs, self._spin_n_cycles, self._spin_n_fft,
@@ -246,7 +248,7 @@ class TimeFrequencyWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = TimeFrequencyParams(
             method=TimeFrequencyMethod(self._cmb_method.currentText()),
             fmin=self._spin_fmin.value(),
@@ -259,8 +261,8 @@ class TimeFrequencyWidget(QWidget):
             time_bandwidth=self._spin_time_bw.value(),
             n_tapers=self._spin_n_tapers.value(),
             baseline=(self._spin_base_tmin.value(), self._spin_base_tmax.value()) if self._chk_baseline.isChecked() else None,
-            baseline_mode=self._cmb_base_mode.currentText(),
-            output=self._cmb_output.currentText(),
+            baseline_mode=cast(TFBaselineMode, self._cmb_base_mode.currentText()),
+            output=cast(TFOutput, self._cmb_output.currentText()),
             decim=self._spin_decim.value(),
         )
         # 处理自定义频率
@@ -268,7 +270,7 @@ class TimeFrequencyWidget(QWidget):
             try:
                 freqs = [float(x.strip()) for x in self._edit_custom_freqs.text().split(",") if x.strip()]
                 if freqs:
-                    params.freqs = freqs
+                    params.freqs = np.array(freqs)
                     params.n_freqs = len(freqs)
             except ValueError:
                 pass
@@ -277,15 +279,15 @@ class TimeFrequencyWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_tfr(self):
+    def _run_tfr(self) -> None:
         self._vm.run_time_frequency()
 
     @Slot()
-    def _run_from_epochs(self):
+    def _run_from_epochs(self) -> None:
         self.status_message.emit("请先定义事件和 Epochs 参数")
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         if result and result.time_frequency is not None:
             shape = result.time_frequency.shape
             self.status_message.emit(f"时频图计算完成: {shape}")

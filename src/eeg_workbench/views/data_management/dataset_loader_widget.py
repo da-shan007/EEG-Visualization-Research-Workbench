@@ -1,13 +1,14 @@
 """数据集加载器 Widget：文件选择、最近文件、加载进度"""
 from __future__ import annotations
+from eeg_workbench.models.dataset import EEGDataset
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
-from PySide6.QtCore import Signal, Slot, Qt, QThread, QObject, QTimer
+from PySide6.QtCore import Signal, Slot, Qt, QThread, QObject, QTimer, QPoint
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QGroupBox, QPushButton,
     QListWidget, QListWidgetItem, QLabel, QProgressBar, QFileDialog,
-    QMessageBox, QMenu, QInputDialog, QLineEdit
+    QMessageBox, QMenu, QInputDialog, QLineEdit, QFrame
 )
 from PySide6.QtGui import QAction, QIcon
 
@@ -20,13 +21,13 @@ class LoadWorker(QObject):
     finished = Signal(object)  # LoadResult
     error = Signal(str)
 
-    def __init__(self, vm: DataManagementViewModel, file_path: str, kwargs: dict):
+    def __init__(self, vm: DataManagementViewModel, file_path: str, kwargs: dict[str, Any]) -> None:
         super().__init__()
         self._vm = vm
         self._file_path = file_path
         self._kwargs = kwargs
 
-    def run(self):
+    def run(self) -> None:
         try:
             from eeg_workbench.services.io import ReaderFactory
             result = ReaderFactory.load_dataset(self._file_path, **self._kwargs)
@@ -41,7 +42,7 @@ class DatasetLoaderWidget(QWidget):
     dataset_loaded = Signal(object)  # EEGDataset
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._worker_thread: Optional[QThread] = None
@@ -50,7 +51,7 @@ class DatasetLoaderWidget(QWidget):
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -156,14 +157,14 @@ class DatasetLoaderWidget(QWidget):
         # 初始填充最近文件
         self._update_recent_list(self._vm._config_mgr.config.recent_files)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.recent_files_changed.connect(self._update_recent_list)
         self._vm.loading_progress.connect(self._on_loading_progress)
         self._vm.status_message.connect(self._on_status_message)
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
     @Slot(list)
-    def _update_recent_list(self, files: list[str]):
+    def _update_recent_list(self, files: list[str]) -> None:
         self._recent_list.clear()
         for f in files:
             item = QListWidgetItem(f)
@@ -171,7 +172,7 @@ class DatasetLoaderWidget(QWidget):
             self._recent_list.addItem(item)
 
     @Slot(object)
-    def _on_loading_progress(self, progress: FileLoadProgress):
+    def _on_loading_progress(self, progress: FileLoadProgress) -> None:
         self._progress.setVisible(True)
         if progress.stage == "reading":
             self._progress.setRange(0, progress.total)
@@ -190,12 +191,12 @@ class DatasetLoaderWidget(QWidget):
             self._progress.setStyleSheet("QProgressBar::chunk { background: #e74c3c; }")
 
     @Slot(str)
-    def _on_status_message(self, msg: str):
+    def _on_status_message(self, msg: str) -> None:
         self._lbl_status.setText(msg)
         self.status_message.emit(msg)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         if dataset:
             self._lbl_status.setText(
                 f"已加载: {dataset.name} | {dataset.n_channels}ch | "
@@ -207,7 +208,7 @@ class DatasetLoaderWidget(QWidget):
 
     # ---- 交互槽 ----
     @Slot()
-    def _browse_file(self):
+    def _browse_file(self) -> None:
         filters = (
             "EEG 数据 (*.edf *.bdf *.vhdr *.vmrk *.eeg *.set *.csv *.tsv *.txt *.xlsx *.xls);;"
             "EDF/BDF (*.edf *.bdf);;"
@@ -220,7 +221,7 @@ class DatasetLoaderWidget(QWidget):
         if file_path:
             self._load_file(file_path)
 
-    def _load_file(self, file_path: str):
+    def _load_file(self, file_path: str) -> None:
         """启动后台加载"""
         # 检查是否为表格格式，显示参数输入
         ext = Path(file_path).suffix.lower()
@@ -228,7 +229,7 @@ class DatasetLoaderWidget(QWidget):
         if ext in table_exts:
             self._grp_table.setVisible(True)
 
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if self._chk_preload.isChecked():
             kwargs["preload"] = True
 
@@ -262,7 +263,7 @@ class DatasetLoaderWidget(QWidget):
         self._btn_browse.setText("加载中...")
 
     @Slot(object)
-    def _on_load_finished(self, result):
+    def _on_load_finished(self, result: Any) -> None:
         self._btn_browse.setEnabled(True)
         self._btn_browse.setText("浏览并加载...")
         self._grp_table.setVisible(False)
@@ -273,20 +274,20 @@ class DatasetLoaderWidget(QWidget):
             self._vm.dataset_changed.emit(result.dataset)
 
     @Slot(str)
-    def _on_load_error(self, error: str):
+    def _on_load_error(self, error: str) -> None:
         self._btn_browse.setEnabled(True)
         self._btn_browse.setText("浏览并加载...")
         self._grp_table.setVisible(False)
         QMessageBox.critical(self, "加载失败", error)
 
     @Slot()
-    def _clear_recent(self):
+    def _clear_recent(self) -> None:
         self._vm._config_mgr.config.recent_files.clear()
         self._vm._config_mgr.save()
         self._update_recent_list([])
 
     @Slot()
-    def _show_recent_context_menu(self, pos):
+    def _show_recent_context_menu(self, pos: QPoint) -> None:
         item = self._recent_list.itemAt(pos)
         if not item:
             return
@@ -303,25 +304,24 @@ class DatasetLoaderWidget(QWidget):
         menu.addAction(act_copy)
         menu.exec(self._recent_list.mapToGlobal(pos))
 
-    def _remove_recent(self, path: str):
+    def _remove_recent(self, path: str) -> None:
         files = self._vm._config_mgr.config.recent_files
         if path in files:
             files.remove(path)
             self._vm._config_mgr.save()
             self._update_recent_list(files)
 
-    def _copy_path(self, path: str):
+    def _copy_path(self, path: str) -> None:
         from PySide6.QtWidgets import QApplication
         QApplication.clipboard().setText(path)
         self.status_message.emit(f"已复制: {path}")
 
     @Slot(QListWidgetItem)
-    def _on_recent_double_clicked(self, item: QListWidgetItem):
+    def _on_recent_double_clicked(self, item: QListWidgetItem) -> None:
         self._load_file(item.text())
 
     @staticmethod
-    def _separator():
-        from PySide6.QtWidgets import QFrame
+    def _separator() -> QFrame:
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         line.setFrameShadow(QFrame.Shadow.Sunken)

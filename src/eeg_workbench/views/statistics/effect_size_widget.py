@@ -1,5 +1,6 @@
 """效应量计算面板"""
 from __future__ import annotations
+from eeg_workbench.models.dataset import EEGDataset
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot
@@ -21,13 +22,13 @@ class EffectSizeWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -127,25 +128,25 @@ class EffectSizeWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
     @Slot()
-    def _select_effect_size(self, effect: EffectSize):
+    def _select_effect_size(self, effect: EffectSize) -> None:
         self._current_effect = effect
         for es, btn in self._effect_buttons.items():
             btn.setChecked(es == effect)
 
     @Slot()
-    def _compute_effect_size(self):
+    def _compute_effect_size(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "提示", "请准备两组数据，然后调用 compute_effect_size 方法")
 
     @Slot()
-    def _compute_all(self):
+    def _compute_all(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "提示", "请准备两组数据，然后调用 compute_effect_size 方法")

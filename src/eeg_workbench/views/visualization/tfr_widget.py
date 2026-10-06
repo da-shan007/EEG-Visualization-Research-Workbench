@@ -1,5 +1,6 @@
 """时频图面板"""
 from __future__ import annotations
+from eeg_workbench.models.dataset import EEGDataset
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot
@@ -20,13 +21,13 @@ class TFRWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -182,22 +183,22 @@ class TFRWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
             self._spin_fmax.setMaximum(dataset.sfreq / 2)
 
     @Slot(str)
-    def _on_method_changed(self, method: str):
+    def _on_method_changed(self, method: str) -> None:
         self._morlet_group.setVisible(method == "morlet")
         self._stft_group.setVisible(method == "stft")
         self._on_param_changed()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.tf_params
         self._block_signals(True)
         try:
@@ -222,7 +223,7 @@ class TFRWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_fmin, self._spin_fmax, self._spin_n_freqs,
             self._edit_custom_freqs, self._spin_n_cycles, self._spin_n_fft,
@@ -233,7 +234,7 @@ class TFRWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = TFRParams(
             method=self._cmb_method.currentText(),
             fmin=self._spin_fmin.value(),
@@ -263,7 +264,7 @@ class TFRWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_tfr(self):
+    def _run_tfr(self) -> None:
         if not self._vm.dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -272,7 +273,7 @@ class TFRWidget(QWidget):
         self._vm.plot_tfr()
 
     @Slot()
-    def _export_figure(self):
+    def _export_figure(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出时频图", "", "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)")
         if path:

@@ -113,13 +113,13 @@ class NonlinearService:
         )
 
     @staticmethod
-    def _resolve_picks(picks, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
+    def _resolve_picks(picks: list[str] | str | None, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
         if picks is None:
             return None
         if isinstance(picks, str):
             if picks == "eeg":
                 return [i for i, ch in enumerate(ch_names)
-                        if dataset.channel_info.get(ch).type.value == "eeg"]
+                        if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eeg"]
             elif picks == "data":
                 return list(range(len(ch_names)))
         if isinstance(picks, list):
@@ -147,7 +147,7 @@ class NonlinearService:
                     continue
 
                 # 构建模板向量
-                def _phi(m_val):
+                def _phi(m_val: int) -> float:
                     patterns = np.array([ts[i:i+m_val] for i in range(n_times - m_val + 1)])
                     count = 0
                     for i in range(len(patterns)):
@@ -185,7 +185,7 @@ class NonlinearService:
                     results[ep, ch] = 0
                     continue
 
-                def _phi(m_val):
+                def _phi(m_val: int) -> float:
                     patterns = np.array([ts[i:i+m_val] for i in range(n_times - m_val + 1)])
                     count = 0
                     for i in range(len(patterns)):
@@ -420,7 +420,7 @@ class NonlinearService:
 
     # ---- 便捷方法 ----
     @classmethod
-    def entropy_suite(cls, dataset: EEGDataset, **kwargs) -> NonlinearResult:
+    def entropy_suite(cls, dataset: EEGDataset, **kwargs: Any) -> NonlinearResult:
         """熵指标套件"""
         params = NonlinearParams(
             measures=[
@@ -433,7 +433,7 @@ class NonlinearService:
         return cls.compute(dataset, params)
 
     @classmethod
-    def fractal_suite(cls, dataset: EEGDataset, **kwargs) -> NonlinearResult:
+    def fractal_suite(cls, dataset: EEGDataset, **kwargs: Any) -> NonlinearResult:
         """分形指标套件"""
         params = NonlinearParams(
             measures=[
@@ -445,7 +445,7 @@ class NonlinearService:
         return cls.compute(dataset, params)
 
     @classmethod
-    def full_suite(cls, dataset: EEGDataset, **kwargs) -> NonlinearResult:
+    def full_suite(cls, dataset: EEGDataset, **kwargs: Any) -> NonlinearResult:
         """全套非线性指标"""
         params = NonlinearParams(
             measures=list(NonlinearMeasure),
@@ -457,6 +457,6 @@ class NonlinearService:
 def compute_nonlinear_features(
     dataset: EEGDataset,
     params: NonlinearParams,
-    **kwargs
+    **kwargs: Any
 ) -> NonlinearResult:
     return NonlinearService.compute(dataset, params, **kwargs)

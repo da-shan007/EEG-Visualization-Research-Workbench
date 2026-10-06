@@ -119,13 +119,13 @@ class ConnectivityService:
         )
 
     @staticmethod
-    def _resolve_picks(picks, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
+    def _resolve_picks(picks: list[str] | str | None, ch_names: list[str], dataset: EEGDataset) -> list[int] | None:
         if picks is None:
             return None
         if isinstance(picks, str):
             if picks == "eeg":
                 return [i for i, ch in enumerate(ch_names)
-                        if dataset.channel_info.get(ch).type.value == "eeg"]
+                        if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eeg"]
             elif picks == "data":
                 return list(range(len(ch_names)))
         if isinstance(picks, list):
@@ -238,7 +238,7 @@ class ConnectivityService:
                 fmin=fmin, fmax=fmax,
                 verbose=False
             )
-            return con
+            return np.asarray(con)
         except ImportError:
             # 简化：计算全频带 PLV
             for ep in range(n_epochs):
@@ -293,7 +293,7 @@ class ConnectivityService:
         if is_epochs:
             conn = conn[np.newaxis]  # 保留 epoch 维 -> (1, n_freqs, n_ch, n_ch)
 
-        return conn
+        return np.asarray(conn)
 
     @staticmethod
     def _permutation_test(
@@ -308,22 +308,22 @@ class ConnectivityService:
 
     # ---- 便捷方法 ----
     @classmethod
-    def coherence(cls, dataset: EEGDataset, **kwargs) -> ConnectivityResult:
+    def coherence(cls, dataset: EEGDataset, **kwargs: Any) -> ConnectivityResult:
         params = ConnectivityParams(method=ConnectivityMethod.COHERENCE, **kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def plv(cls, dataset: EEGDataset, **kwargs) -> ConnectivityResult:
+    def plv(cls, dataset: EEGDataset, **kwargs: Any) -> ConnectivityResult:
         params = ConnectivityParams(method=ConnectivityMethod.PLV, **kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def pli(cls, dataset: EEGDataset, **kwargs) -> ConnectivityResult:
+    def pli(cls, dataset: EEGDataset, **kwargs: Any) -> ConnectivityResult:
         params = ConnectivityParams(method=ConnectivityMethod.PLI, **kwargs)
         return cls.compute(dataset, params)
 
     @classmethod
-    def granger(cls, dataset: EEGDataset, **kwargs) -> ConnectivityResult:
+    def granger(cls, dataset: EEGDataset, **kwargs: Any) -> ConnectivityResult:
         params = ConnectivityParams(method=ConnectivityMethod.GCA, **kwargs)
         return cls.compute(dataset, params)
 
@@ -331,6 +331,6 @@ class ConnectivityService:
 def compute_connectivity(
     dataset: EEGDataset,
     params: ConnectivityParams,
-    **kwargs
+    **kwargs: Any
 ) -> ConnectivityResult:
     return ConnectivityService.compute(dataset, params, **kwargs)

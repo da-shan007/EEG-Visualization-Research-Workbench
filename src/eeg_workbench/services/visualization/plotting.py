@@ -1,18 +1,34 @@
 """绘图服务：波形、频谱、时频、连通性、统计、源定位绘图"""
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional, Literal
+from typing import Any, Optional, Literal, TypeVar
 import numpy as np
 from pathlib import Path
 
-from eeg_workbench.models.dataset import EEGDataset
+from eeg_workbench.models.dataset import EEGDataset, Event
 from eeg_workbench.models.visualization import (
     PlotConfig, WaveformPlotConfig, SpectralPlotConfig,
     TFRPlotConfig, ConnectivityPlotConfig,
     StatisticalPlotConfig, SourcePlotConfig,
-    PlotType, PlotBackend, ExportFormat
+    PlotType, PlotBackend, ExportFormat, WaveformPicks
 )
 from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPayload
+
+
+_C = TypeVar("_C", bound=PlotConfig)
+
+
+def _coerce_config(config: PlotConfig | None, cls: type[_C], plot_type: PlotType) -> _C:
+    """统一入口的配置校验：缺省则建默认，错配则大声失败。
+
+    背景：plot() 按 plot_type 分发到各专用方法，各方法要求自己的
+    Config 子类；以前错配的 Config 会一路传进去直到某处 AttributeError。
+    """
+    cfg = config if config is not None else cls()
+    if not isinstance(cfg, cls):
+        raise TypeError(
+            f"{plot_type} 需要 {cls.__name__}，传入 {type(cfg).__name__}")
+    return cfg
 
 
 @dataclass
@@ -21,17 +37,17 @@ class FigureResult:
     figure: Any  # matplotlib.figure.Figure 或 pyqtgraph.PlotWidget
     axes: Any | None = None
     config: PlotConfig | None = None
-    data_info: dict = field(default_factory=dict)
+    data_info: dict[str, Any] = field(default_factory=dict)
 
 
 class PlottingService:
     """绘图服务主入口"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._backend = PlotBackend.MATPLOTLIB
-        self._figures: list = []
+        self._figures: list[Any] = []
 
-    def set_backend(self, backend: PlotBackend):
+    def set_backend(self, backend: PlotBackend) -> None:
         """设置绘图后端"""
         self._backend = backend
 
@@ -40,24 +56,24 @@ class PlottingService:
         dataset: EEGDataset,
         plot_type: PlotType,
         config: PlotConfig | None = None,
-        **kwargs
+        **kwargs: Any
     ) -> FigureResult:
         """统一绘图入口"""
         
         # 根据类型分发
         if plot_type in (PlotType.RAW_WAVEFORM, PlotType.ERP_WAVEFORM, PlotType.EPOCH_WAVEFORM):
-            return self.plot_waveform(dataset, config or WaveformPlotConfig(), **kwargs)
+            return self.plot_waveform(dataset, _coerce_config(config, WaveformPlotConfig, plot_type), **kwargs)
         elif plot_type == PlotType.PSD:
-            return self.plot_spectral(dataset, config or SpectralPlotConfig(), **kwargs)
+            return self.plot_spectral(dataset, _coerce_config(config, SpectralPlotConfig, plot_type), **kwargs)
         elif plot_type == PlotType.TFR:
-            return self.plot_tfr(dataset, config or TFRPlotConfig(), **kwargs)
+            return self.plot_tfr(dataset, _coerce_config(config, TFRPlotConfig, plot_type), **kwargs)
         elif plot_type in (PlotType.CONNECTIVITY_MATRIX, PlotType.CONNECTIVITY_GRAPH, PlotType.CONNECTIVITY_3D):
-            return self.plot_connectivity(dataset, config or ConnectivityPlotConfig(), **kwargs)
+            return self.plot_connectivity(dataset, _coerce_config(config, ConnectivityPlotConfig, plot_type), **kwargs)
         elif plot_type in (PlotType.STAT_BAR, PlotType.STAT_VIOLIN, PlotType.STAT_BOX, 
                           PlotType.STAT_RAINCLOUD, PlotType.STAT_EFFECT_SIZE):
-            return self.plot_statistical(dataset, config or StatisticalPlotConfig(), **kwargs)
+            return self.plot_statistical(dataset, _coerce_config(config, StatisticalPlotConfig, plot_type), **kwargs)
         elif plot_type in (PlotType.SOURCE_ESTIMATE, PlotType.SOURCE_3D, PlotType.DIPOLE_3D):
-            return self.plot_source(dataset, config or SourcePlotConfig(), **kwargs)
+            return self.plot_source(dataset, _coerce_config(config, SourcePlotConfig, plot_type), **kwargs)
         elif plot_type == PlotType.TOPOMAP:
             return self.plot_topomap(dataset, config or PlotConfig(), **kwargs)
         else:
@@ -68,8 +84,8 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: WaveformPlotConfig,
-        events: list = None,
-        **kwargs
+        events: list[Event] | None = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制波形图"""
         try:
@@ -165,24 +181,24 @@ class PlottingService:
         return FigureResult(figure=fig, axes=axes, config=config, 
                           data_info={"n_channels": n_ch, "duration": times[-1] - times[0]})
 
-    def _resolve_picks(self, dataset: EEGDataset, picks) -> list[int]:
+    def _resolve_picks(self, dataset: EEGDataset, picks: WaveformPicks) -> list[int]:
         """解析通道选择"""
         if picks == "all":
             return list(range(dataset.n_channels))
         elif picks == "eeg":
-            return [i for i, ch in enumerate(dataset.ch_names) 
-                   if dataset.channel_info.get(ch, {}).type.value == "eeg"]
+            return [i for i, ch in enumerate(dataset.ch_names)
+                    if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eeg"]
         elif picks == "eog":
-            return [i for i, ch in enumerate(dataset.ch_names) 
-                   if dataset.channel_info.get(ch, {}).type.value == "eog"]
+            return [i for i, ch in enumerate(dataset.ch_names)
+                    if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "eog"]
         elif picks == "ecg":
-            return [i for i, ch in enumerate(dataset.ch_names) 
-                   if dataset.channel_info.get(ch, {}).type.value == "ecg"]
+            return [i for i, ch in enumerate(dataset.ch_names)
+                    if (ch_info := dataset.channel_info.get(ch)) is not None and ch_info.type.value == "ecg"]
         elif isinstance(picks, list):
             if all(isinstance(p, str) for p in picks):
                 return [dataset.ch_names.index(p) for p in picks if p in dataset.ch_names]
             else:
-                return picks
+                return [p for p in picks if isinstance(p, int)]
         return list(range(dataset.n_channels))
 
     # ---- 频谱图 ----
@@ -190,7 +206,7 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: SpectralPlotConfig,
-        **kwargs
+        **kwargs: Any
     ) -> FigureResult:
         """绘制功率谱密度"""
         try:
@@ -245,8 +261,8 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: TFRPlotConfig,
-        epochs_data: np.ndarray = None,
-        **kwargs
+        epochs_data: np.ndarray | None = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制时频图（Morlet/Multitaper 时频分解 + 基线校正）
 
@@ -366,8 +382,8 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: ConnectivityPlotConfig,
-        connectivity_matrix: np.ndarray = None,
-        **kwargs
+        connectivity_matrix: np.ndarray | None = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制连通性矩阵/图"""
         try:
@@ -402,8 +418,8 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: StatisticalPlotConfig,
-        data: dict = None,
-        **kwargs
+        data: dict[str, Any] | None = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制统计图"""
         try:
@@ -447,7 +463,7 @@ class PlottingService:
                             data_info={"n_groups": len(values), "plot_type": config.plot_type})
 
     @staticmethod
-    def _draw_stats(ax, values: dict, config, subtitle: str) -> None:
+    def _draw_stats(ax: Any, values: dict[str, Any], config: StatisticalPlotConfig, subtitle: str) -> None:
         """按 config.plot_type 绘制分组统计图（bar/box/violin/raincloud/forest）。"""
         from scipy import stats as sps
 
@@ -456,7 +472,7 @@ class PlottingService:
         ptype = getattr(config, "plot_type", "bar")
         rng = np.random.default_rng(0)
 
-        def _scatter(x_pos, arr):
+        def _scatter(x_pos: Any, arr: np.ndarray) -> None:
             if not config.show_individual_points:
                 return
             jitter = rng.uniform(-config.point_jitter, config.point_jitter, size=arr.size) \
@@ -501,7 +517,7 @@ class PlottingService:
             ax.set_xticklabels(labels, rotation=45, ha="right")
             ax.grid(axis="y", alpha=0.3)
         else:  # 未知类型回落 bar
-            means = [np.mean(a) for a in arrays]
+            means = np.array([np.mean(a) for a in arrays])
             x = np.arange(len(labels))
             ax.bar(x, means, alpha=0.7, edgecolor="black", color="#4C72B0")
             ax.set_xticks(x)
@@ -516,8 +532,8 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: SourcePlotConfig,
-        stc = None,
-        **kwargs
+        stc: Any = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制源定位"""
         try:
@@ -565,9 +581,9 @@ class PlottingService:
         self,
         dataset: EEGDataset,
         config: PlotConfig,
-        data: np.ndarray = None,
-        times: np.ndarray = None,
-        **kwargs
+        data: np.ndarray | None = None,
+        times: np.ndarray | None = None,
+        **kwargs: Any
     ) -> FigureResult:
         """绘制地形图"""
         try:
@@ -600,25 +616,25 @@ class PlottingService:
 
 
 # ---- 便捷函数 ----
-def create_figure(plot_type: PlotType, **kwargs) -> FigureResult:
+def create_figure(dataset: EEGDataset, plot_type: PlotType, **kwargs: Any) -> FigureResult:
     """创建图形的便捷函数"""
     service = PlottingService()
-    return service.plot(None, plot_type, **kwargs)
+    return service.plot(dataset, plot_type, **kwargs)
 
 
-def plot_waveform(dataset: EEGDataset, config: WaveformPlotConfig = None, **kwargs) -> FigureResult:
+def plot_waveform(dataset: EEGDataset, config: WaveformPlotConfig | None = None, **kwargs: Any) -> FigureResult:
     """绘制波形图"""
     service = PlottingService()
     return service.plot_waveform(dataset, config or WaveformPlotConfig(), **kwargs)
 
 
-def plot_spectral(dataset: EEGDataset, config: SpectralPlotConfig = None, **kwargs) -> FigureResult:
+def plot_spectral(dataset: EEGDataset, config: SpectralPlotConfig | None = None, **kwargs: Any) -> FigureResult:
     """绘制频谱"""
     service = PlottingService()
     return service.plot_spectral(dataset, config or SpectralPlotConfig(), **kwargs)
 
 
-def plot_tfr(dataset: EEGDataset, config: TFRPlotConfig = None, **kwargs) -> FigureResult:
+def plot_tfr(dataset: EEGDataset, config: TFRPlotConfig | None = None, **kwargs: Any) -> FigureResult:
     """绘制时频图"""
     service = PlottingService()
     return service.plot_tfr(dataset, config or TFRPlotConfig(), **kwargs)

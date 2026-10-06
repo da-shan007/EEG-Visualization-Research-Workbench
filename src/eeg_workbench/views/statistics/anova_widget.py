@@ -1,6 +1,7 @@
 """方差分析面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
-from eeg_workbench.models.statistics import ANOVAParams, MultipleComparisonCorrection, EffectSize
+from eeg_workbench.models.statistics import ANOVAParams, MultipleComparisonCorrection, EffectSize, ANOVADesign, PostHocMethod, SphericityCorrection
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -20,13 +21,13 @@ class ANOVAWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -122,21 +123,21 @@ class ANOVAWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_design_changed(self, design: str):
+    def _on_design_changed(self, design: str) -> None:
         is_repeated = design in ("repeated", "mixed")
         self._repeated_group.setVisible(is_repeated)
         self._between_group.setVisible(not is_repeated)
         self._edit_subject.setVisible(is_repeated)
         self._on_param_changed()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.anova_params
         self._block_signals(True)
         try:
@@ -151,7 +152,7 @@ class ANOVAWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_design, self._edit_factors, self._edit_subject,
             self._chk_posthoc, self._cmb_posthoc, self._cmb_correction,
@@ -160,21 +161,21 @@ class ANOVAWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ANOVAParams(
-            design=self._cmb_design.currentText(),
+            design=cast(ANOVADesign, self._cmb_design.currentText()),
             factors=[f.strip() for f in self._edit_factors.text().split(",") if f.strip()],
             subject_factor=self._edit_subject.text() or None,
             post_hoc=self._chk_posthoc.isChecked(),
-            post_hoc_method=self._cmb_posthoc.currentText(),
+            post_hoc_method=cast(PostHocMethod, self._cmb_posthoc.currentText()),
             corrections=[MultipleComparisonCorrection(self._cmb_correction.currentText())],
-            sphericity_correction=self._cmb_sphericity.currentText(),
+            sphericity_correction=cast(SphericityCorrection, self._cmb_sphericity.currentText()),
             effect_size=EffectSize(self._cmb_effect_size.currentText()),
         )
         self._vm.set_anova_params(**params.__dict__)
         self.params_changed.emit()
 
     @Slot()
-    def _run_anova(self):
+    def _run_anova(self) -> None:
         from PySide6.QtWidgets import QMessageBox
         QMessageBox.information(self, "提示", "请先在特征提取/ERP模块准备分组数据，然后调用 run_anova 方法")

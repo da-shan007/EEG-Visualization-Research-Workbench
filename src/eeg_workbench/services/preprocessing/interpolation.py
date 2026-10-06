@@ -142,7 +142,7 @@ class InterpolationService:
         )
 
     @staticmethod
-    def _nearest_neighbor_interpolation(raw, bad_channels: list[str], verbose: bool = False):
+    def _nearest_neighbor_interpolation(raw: Any, bad_channels: list[str], verbose: bool = False) -> Any:
         """最近邻平均插值 (不依赖位置信息)"""
         from scipy.spatial.distance import cdist
         import mne
@@ -182,7 +182,7 @@ class InterpolationService:
         return new_raw
 
     @staticmethod
-    def _params_to_dict(params: BadChannelInterpolationParams, bad_channels: list[str]) -> dict:
+    def _params_to_dict(params: BadChannelInterpolationParams, bad_channels: list[str]) -> dict[str, Any]:
         return {
             "method": params.method.value,
             "bad_channels": bad_channels,
@@ -190,7 +190,7 @@ class InterpolationService:
         }
 
     @classmethod
-    def spherical(cls, dataset: EEGDataset, bad_channels: list[str] = None, **kwargs) -> InterpolationResult:
+    def spherical(cls, dataset: EEGDataset, bad_channels: list[str] | None = None, **kwargs: Any) -> InterpolationResult:
         params = BadChannelInterpolationParams(
             method=InterpolationMethod.SPHERICAL,
             bad_channels=bad_channels or [],
@@ -199,7 +199,7 @@ class InterpolationService:
         return cls.apply(dataset, params)
 
     @classmethod
-    def nearest_neighbor(cls, dataset: EEGDataset, bad_channels: list[str] = None, **kwargs) -> InterpolationResult:
+    def nearest_neighbor(cls, dataset: EEGDataset, bad_channels: list[str] | None = None, **kwargs: Any) -> InterpolationResult:
         params = BadChannelInterpolationParams(
             method=InterpolationMethod.NEAREST,
             bad_channels=bad_channels or [],
@@ -208,7 +208,7 @@ class InterpolationService:
         return cls.apply(dataset, params)
 
     @classmethod
-    def spline(cls, dataset: EEGDataset, bad_channels: list[str] = None, **kwargs) -> InterpolationResult:
+    def spline(cls, dataset: EEGDataset, bad_channels: list[str] | None = None, **kwargs: Any) -> InterpolationResult:
         params = BadChannelInterpolationParams(
             method=InterpolationMethod.SPLINE,
             bad_channels=bad_channels or [],
@@ -220,7 +220,7 @@ class InterpolationService:
 def interpolate_bads(
     dataset: EEGDataset,
     params: BadChannelInterpolationParams,
-    **kwargs
+    **kwargs: Any
 ) -> InterpolationResult:
     return InterpolationService.apply(dataset, params, **kwargs)
 

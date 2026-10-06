@@ -16,7 +16,7 @@ class EffectSizeResult:
     interpretation: str  # "small", "medium", "large"
     ci_low: float | None = None
     ci_high: float | None = None
-    details: dict = None
+    details: dict[str, Any] | None = None
 
 
 class EffectSizeService:
@@ -245,7 +245,7 @@ class EffectSizeService:
     # ---- 方差分析效应量计算 (从 ANOVA 表) ----
     @staticmethod
     def from_anova_table(
-        anova_table: dict,  # pingouin 返回的字典
+        anova_table: dict[str, Any],  # pingouin 返回的字典
         effect_name: str
     ) -> dict[str, EffectSizeResult]:
         """从 ANOVA 表提取多种效应量"""
@@ -287,7 +287,7 @@ def compute_effect_size(
     group1: np.ndarray,
     group2: np.ndarray,
     effect_type: EffectSize = EffectSize.COHEN_D,
-    **kwargs
+    **kwargs: Any
 ) -> EffectSizeResult:
     """统一接口"""
     if effect_type == EffectSize.COHEN_D:

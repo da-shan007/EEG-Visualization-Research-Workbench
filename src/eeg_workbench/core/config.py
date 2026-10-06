@@ -42,11 +42,11 @@ class AppConfig:
         "Gamma": (30, 45),
     })
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, data: dict) -> AppConfig:
+    def from_dict(cls, data: dict[str, Any]) -> AppConfig:
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
 
@@ -56,14 +56,14 @@ class _ConfigManager:
     _lock = Lock()
     _initialized: bool = False
 
-    def __new__(cls):
+    def __new__(cls) -> _ConfigManager:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._initialized = False
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self._initialized:
             return
         self._config_path = self._get_config_path()
@@ -97,7 +97,7 @@ class _ConfigManager:
     def config(self) -> AppConfig:
         return self._config
 
-    def update(self, **kwargs) -> None:
+    def update(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._config, k):
                 setattr(self._config, k, v)

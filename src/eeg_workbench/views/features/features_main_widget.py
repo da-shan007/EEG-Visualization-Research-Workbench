@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.utils.ui import wrap_scroll
-from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
+from eeg_workbench.viewmodels.features_vm import FeaturesViewModel, FeatureResultUI
 from .band_power_widget import BandPowerWidget
 from .connectivity_widget import ConnectivityWidget
 from .nonlinear_widget import NonlinearWidget
@@ -26,7 +26,7 @@ class FeaturesMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
@@ -34,7 +34,7 @@ class FeaturesMainWidget(QWidget):
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -103,7 +103,7 @@ class FeaturesMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.band_power_result.connect(self._on_band_power_result)
         self._vm.tfr_result.connect(self._on_tfr_result)
@@ -119,7 +119,7 @@ class FeaturesMainWidget(QWidget):
         )
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -136,31 +136,31 @@ class FeaturesMainWidget(QWidget):
         self.dataset_changed.emit(dataset)
 
     @Slot(object)
-    def _on_band_power_result(self, result: FeatureExtractionResult):
+    def _on_band_power_result(self, result: FeatureExtractionResult) -> None:
         self._results_cache["band_power"] = result
         self._update_history_from_vm()
 
     @Slot(object)
-    def _on_tfr_result(self, result: FeatureExtractionResult):
+    def _on_tfr_result(self, result: FeatureExtractionResult) -> None:
         self._results_cache["time_frequency"] = result
         self._update_history_from_vm()
 
     @Slot(object)
-    def _on_connectivity_result(self, result: FeatureExtractionResult):
+    def _on_connectivity_result(self, result: FeatureExtractionResult) -> None:
         self._results_cache["connectivity"] = result
         self._update_history_from_vm()
 
     @Slot(object)
-    def _on_nonlinear_result(self, result: FeatureExtractionResult):
+    def _on_nonlinear_result(self, result: FeatureExtractionResult) -> None:
         self._results_cache["nonlinear"] = result
         self._update_history_from_vm()
 
-    def _update_history_from_vm(self):
+    def _update_history_from_vm(self) -> None:
         # 从 ViewModel 的 processing_steps 更新
         pass
 
     @Slot(list)
-    def _update_history(self, steps: list):
+    def _update_history(self, steps: list[FeatureResultUI]) -> None:
         self._history_list.clear()
         for step in steps:
             status = "✓"
@@ -169,7 +169,7 @@ class FeaturesMainWidget(QWidget):
             self._history_list.addItem(item)
 
     @Slot()
-    def _extract_epochs_dialog(self):
+    def _extract_epochs_dialog(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -238,7 +238,7 @@ class FeaturesMainWidget(QWidget):
                 # 可以将 epochs_data 传给后续分析
 
     @Slot()
-    def _run_all_features(self):
+    def _run_all_features(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -263,7 +263,7 @@ class FeaturesMainWidget(QWidget):
             self._btn_run_all.setText("一键全部分析")
 
     @Slot()
-    def _export_results(self):
+    def _export_results(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出特征结果", "", "NPZ 文件 (*.npz);;CSV 文件 (*.csv)")
         if path:
@@ -271,6 +271,6 @@ class FeaturesMainWidget(QWidget):
                 QMessageBox.information(self, "完成", f"结果已导出到: {path}")
 
     @Slot()
-    def _clear_history(self):
+    def _clear_history(self) -> None:
         self._history_list.clear()
         self._results_cache.clear()

@@ -16,7 +16,7 @@ class CorrectionResult:
     p_values_corrected: np.ndarray    # 校正后的 p 值
     alpha_corrected: float | None     # 校正后的显著性水平
     method: str                       # 校正方法
-    details: dict                     # 详细信息
+    details: dict[str, Any]                     # 详细信息
 
 
 class MultipleComparisonService:
@@ -27,7 +27,7 @@ class MultipleComparisonService:
         p_values: np.ndarray,
         method: MultipleComparisonCorrection = MultipleComparisonCorrection.FDR_BH,
         alpha: float = 0.05,
-        **kwargs
+        **kwargs: Any
     ) -> CorrectionResult:
         """校正 p 值"""
         
@@ -231,7 +231,7 @@ class MultipleComparisonService:
             return out
 
         def _tfce_signed(x: np.ndarray) -> np.ndarray:
-            return _tfce_positive(x) - _tfce_positive(-x)
+            return np.asarray(_tfce_positive(x) - _tfce_positive(-x))
 
         tfce_obs = _tfce_signed(stat_map)
         n_perm = null_distribution.shape[0]
@@ -255,7 +255,7 @@ def correct_pvalues(
     p_values: np.ndarray,
     method: MultipleComparisonCorrection = MultipleComparisonCorrection.FDR_BH,
     alpha: float = 0.05,
-    **kwargs
+    **kwargs: Any
 ) -> CorrectionResult:
     return MultipleComparisonService.correct_pvalues(p_values, method, alpha, **kwargs)
 

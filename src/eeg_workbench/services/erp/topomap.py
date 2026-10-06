@@ -21,7 +21,7 @@ class TopomapData:
     sensors: bool = True          # 显示电极位置
     contours: int = 6             # 等高线数
     outlines: str = "head"        # 轮廓: 'head', 'skirt', None
-    sphere: float | tuple | None = None  # 头模型半径
+    sphere: float | tuple[float, ...] | None = None  # 头模型半径
 
 
 class TopomapService:
@@ -29,7 +29,7 @@ class TopomapService:
 
     @staticmethod
     def compute_topomap_data(
-        evoked,
+        evoked: Any,
         time_point: float,
         *,
         ch_type: str = "eeg",
@@ -51,7 +51,7 @@ class TopomapService:
         montage: Montage | None = None,
         *,
         scale: float = 1.0,
-        **kwargs
+        **kwargs: Any
     ) -> TopomapData:
         """从数组计算地形图数据"""
         return TopomapData(
@@ -64,10 +64,10 @@ class TopomapService:
     def plot_topomap(
         topomap_data: TopomapData,
         *,
-        ax=None,
+        ax: Any = None,
         show: bool = True,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> Any:
         """绘制地形图 (需要 matplotlib/mne)"""
         try:
             import mne
@@ -117,14 +117,14 @@ class TopomapService:
 
     @staticmethod
     def plot_topomap_times(
-        evoked,
+        evoked: Any,
         times: list[float],
         *,
         ch_type: str = "eeg",
         n_cols: int = 4,
         scale: float = 1e6,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         """绘制多个时间点的地形图"""
         try:
             import mne
@@ -153,12 +153,12 @@ class TopomapService:
 
     @staticmethod
     def plot_joint(
-        evoked,
+        evoked: Any,
         times: list[float] | str = "peaks",
         *,
         title: str | None = None,
-        **kwargs
-    ):
+        **kwargs: Any
+    ) -> None:
         """绘制联合图 (波形 + 地形图)"""
         try:
             import mne
@@ -218,10 +218,10 @@ class TopomapService:
 
 
 def plot_topomap(
-    evoked,
+    evoked: Any,
     time_point: float,
-    **kwargs
-):
+    **kwargs: Any
+) -> Any:
     """函数式接口"""
     data = TopomapService.compute_topomap_data(evoked, time_point)
     return TopomapService.plot_topomap(data, **kwargs)

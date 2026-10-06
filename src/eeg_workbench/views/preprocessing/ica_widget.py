@@ -1,6 +1,6 @@
 """ICA 面板：拟合、自动识别、成分可视化、手动排除"""
 from __future__ import annotations
-from typing import Optional
+from typing import Any, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt, QThread, QObject
 from PySide6.QtWidgets import (
@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QColor, QBrush
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
+from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.preprocessing import ICAParams, ICAComponentType
 from eeg_workbench.services.preprocessing import ICAService, ICAResult
 from eeg_workbench.utils.ui import balance_form
@@ -24,15 +25,19 @@ class ICAFitWorker(QObject):
     error = Signal(str)
     progress = Signal(int, str)
 
-    def __init__(self, vm: PreprocessingViewModel, params: ICAParams):
+    def __init__(self, vm: PreprocessingViewModel, params: ICAParams) -> None:
         super().__init__()
         self._vm = vm
         self._params = params
 
-    def run(self):
+    def run(self) -> None:
         try:
+            dataset = self._vm.dataset
+            if dataset is None:
+                self.error.emit("请先加载数据集")
+                return
             service = ICAService()
-            result = service.fit(self._vm.dataset, self._params)
+            result = service.fit(dataset, self._params)
             self.finished.emit(result)
         except Exception as e:
             self.error.emit(str(e))
@@ -43,7 +48,7 @@ class ICAWidget(QWidget):
 
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._ica_result: Optional[ICAResult] = None
@@ -52,7 +57,7 @@ class ICAWidget(QWidget):
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(8)
@@ -245,12 +250,12 @@ class ICAWidget(QWidget):
 
         return widget
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.ica_ready.connect(self._on_ica_ready)
         self._vm.ica_component_selected.connect(self._on_component_selected)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
@@ -259,7 +264,7 @@ class ICAWidget(QWidget):
             # 设置默认成分数
             self._spin_n_components.setMaximum(dataset.n_channels)
 
-    def _update_channel_combos(self, channels: list[str]):
+    def _update_channel_combos(self, channels: list[str]) -> None:
         # EOG 通道
         self._cmb_eog_ch.clear()
         self._cmb_eog_ch.addItem("自动检测")
@@ -274,7 +279,7 @@ class ICAWidget(QWidget):
         for ch in ecg_candidates or channels:
             self._cmb_ecg_ch.addItem(ch)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.ica_params
         self._block_signals(True)
         try:
@@ -290,7 +295,7 @@ class ICAWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._spin_n_components, self._cmb_method, self._spin_max_iter,
             self._spin_decim, self._spin_random_state, self._chk_auto_find,
@@ -299,7 +304,7 @@ class ICAWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ICAParams(
             n_components=self._spin_n_components.value() if self._spin_n_components.value() > 0 else None,
             method=self._cmb_method.currentText(),
@@ -316,7 +321,7 @@ class ICAWidget(QWidget):
         self._vm.set_ica_params(**params.__dict__)
 
     @Slot()
-    def _run_fit(self):
+    def _run_fit(self) -> None:
         if not self._vm.dataset:
             return
         self._btn_fit.setEnabled(False)
@@ -335,7 +340,7 @@ class ICAWidget(QWidget):
         self._worker_thread.start()
 
     @Slot(object)
-    def _on_fit_finished(self, result: ICAResult):
+    def _on_fit_finished(self, result: ICAResult) -> None:
         self._worker_thread = None
         self._worker = None
         self._btn_fit.setEnabled(True)
@@ -343,19 +348,19 @@ class ICAWidget(QWidget):
         # 结果通过 ica_ready 信号传递
 
     @Slot(str)
-    def _on_fit_error(self, error: str):
+    def _on_fit_error(self, error: str) -> None:
         self._btn_fit.setEnabled(True)
         self._progress.setVisible(False)
         QMessageBox.critical(self, "ICA 拟合失败", error)
 
     @Slot(object)
-    def _on_ica_ready(self, result: ICAResult):
+    def _on_ica_ready(self, result: ICAResult) -> None:
         self._ica_result = result
         self._btn_apply.setEnabled(True)
         self._populate_component_table(result)
         self.status_message.emit(f"ICA 拟合完成: {result.ica.n_components_} 个成分")
 
-    def _populate_component_table(self, result: ICAResult):
+    def _populate_component_table(self, result: ICAResult) -> None:
         self._comp_table.setRowCount(0)
         n_comp = result.ica.n_components_
         self._comp_table.setRowCount(n_comp)
@@ -388,7 +393,7 @@ class ICAWidget(QWidget):
             self._comp_table.selectRow(i)
 
     @Slot()
-    def _on_component_selection_changed(self):
+    def _on_component_selection_changed(self) -> None:
         rows = self._comp_table.selectionModel().selectedRows()
         if rows and self._ica_result:
             idx = rows[0].row()
@@ -404,12 +409,12 @@ class ICAWidget(QWidget):
             self._vm.ica_component_selected.emit(idx, props)
 
     @Slot(int, dict)
-    def _on_component_selected(self, comp_idx: int, properties: dict):
+    def _on_component_selected(self, comp_idx: int, properties: dict[str, Any]) -> None:
         if 0 <= comp_idx < self._comp_table.rowCount():
             self._comp_table.selectRow(comp_idx)
 
     @Slot()
-    def _mark_components(self, action: str):
+    def _mark_components(self, action: str) -> None:
         if not self._ica_result:
             return
         rows = self._comp_table.selectionModel().selectedRows()
@@ -435,27 +440,27 @@ class ICAWidget(QWidget):
         self._vm.set_ica_exclude(self._ica_result.components_excluded)
 
     @Slot()
-    def _run_apply(self):
+    def _run_apply(self) -> None:
         if not self._ica_result:
             return
         self._vm.run_ica_apply(self._ica_result.components_excluded)
 
     @Slot()
-    def _run_fit_apply(self):
+    def _run_fit_apply(self) -> None:
         self._vm.run_ica_fit_apply()
 
     @Slot()
-    def _plot_components(self):
+    def _plot_components(self) -> None:
         if self._ica_result:
             self._vm.plot_ica_components()
 
     @Slot()
-    def _plot_sources(self):
+    def _plot_sources(self) -> None:
         if self._ica_result and self._vm.dataset:
             self._vm.plot_ica_sources()
 
     @Slot()
-    def _plot_properties(self):
+    def _plot_properties(self) -> None:
         rows = self._comp_table.selectionModel().selectedRows()
         if rows and self._ica_result and self._vm.dataset:
             picks = [r.row() for r in rows]

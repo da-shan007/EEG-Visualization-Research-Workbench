@@ -1,6 +1,7 @@
 """频段功率面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
 from eeg_workbench.models.features import BandPowerParams, SpectralMethod, STANDARD_BANDS
-from eeg_workbench.utils.ui import balance_form
+from eeg_workbench.utils.ui import balance_form, require_table_item
 
 
 class BandPowerWidget(QWidget):
@@ -21,13 +22,13 @@ class BandPowerWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: FeaturesViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -157,20 +158,20 @@ class BandPowerWidget(QWidget):
         # 初始填充标准频段
         self._populate_standard_bands()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.band_power_result.connect(self._on_result_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _populate_standard_bands(self):
+    def _populate_standard_bands(self) -> None:
         self._bands_table.setRowCount(0)
         for name, (low, high) in STANDARD_BANDS.items():
             self._add_band_row(name, low, high)
 
-    def _add_band_row(self, name: str, low: float, high: float):
+    def _add_band_row(self, name: str, low: float, high: float) -> None:
         row = self._bands_table.rowCount()
         self._bands_table.insertRow(row)
         self._bands_table.setItem(row, 0, QTableWidgetItem(name))
@@ -178,7 +179,7 @@ class BandPowerWidget(QWidget):
         self._bands_table.setItem(row, 2, QTableWidgetItem(str(high)))
 
     @Slot()
-    def _add_band(self):
+    def _add_band(self) -> None:
         row = self._bands_table.rowCount()
         self._bands_table.insertRow(row)
         self._bands_table.setItem(row, 0, QTableWidgetItem(f"Band{row+1}"))
@@ -186,19 +187,19 @@ class BandPowerWidget(QWidget):
         self._bands_table.setItem(row, 2, QTableWidgetItem("13"))
 
     @Slot()
-    def _remove_band(self):
+    def _remove_band(self) -> None:
         rows = sorted(set(item.row() for item in self._bands_table.selectedItems()), reverse=True)
         for row in rows:
             self._bands_table.removeRow(row)
 
     @Slot()
-    def _apply_preset(self):
+    def _apply_preset(self) -> None:
         preset = self._cmb_preset.currentText()
         self._vm.apply_band_preset(preset)
         self._populate_standard_bands()
         self.status_message.emit(f"已应用预设: {preset}")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.band_power_params
         self._block_signals(True)
         try:
@@ -219,7 +220,7 @@ class BandPowerWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_n_fft, self._spin_overlap,
             self._cmb_window, self._spin_bandwidth, self._chk_adaptive,
@@ -228,14 +229,14 @@ class BandPowerWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         # 收集频段
         bands = {}
         for row in range(self._bands_table.rowCount()):
-            name = self._bands_table.item(row, 0).text()
+            name = require_table_item(self._bands_table, row, 0).text()
             try:
-                low = float(self._bands_table.item(row, 1).text())
-                high = float(self._bands_table.item(row, 2).text())
+                low = float(require_table_item(self._bands_table, row, 1).text())
+                high = float(require_table_item(self._bands_table, row, 2).text())
                 bands[name] = (low, high)
             except (ValueError, AttributeError):
                 continue
@@ -256,16 +257,16 @@ class BandPowerWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_band_power(self):
+    def _run_band_power(self) -> None:
         self._vm.run_band_power()
 
     @Slot()
-    def _run_from_epochs(self):
+    def _run_from_epochs(self) -> None:
         # 这里需要打开 Epochs 定义对话框
         self.status_message.emit("请先在事件编辑器中定义事件，然后使用此功能")
 
     @Slot(object)
-    def _on_result_ready(self, result):
+    def _on_result_ready(self, result: Any) -> None:
         if result and result.band_power:
             bands_str = ", ".join(f"{k}: {v.shape}" for k, v in result.band_power.items())
             self.status_message.emit(f"频段功率计算完成: {bands_str}")

@@ -11,12 +11,14 @@ from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.source import (
     HeadModelParams, ForwardModelParams, InverseParams, DipoleFitParams,
     HeadModelType, SourceSpaceType, InverseMethod,
-    HeadModelResult, ForwardModelResult, InverseSolutionResult,
     create_head_model_params, create_inverse_params, create_forward_params
 )
 from eeg_workbench.services.source import (
     HeadModelService, ForwardModelService, InverseService, DipoleFitService,
     SourceVisualization3D,
+    HeadModelResult as HeadModelServiceResult,
+    ForwardModelResult as ForwardModelServiceResult,
+    InverseSolutionResult as InverseSolutionServiceResult,
     build_head_model, compute_forward_solution, compute_inverse_solution, fit_dipoles
 )
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
@@ -53,7 +55,7 @@ class SourceViewModel(ViewModelBase):
         features_vm: FeaturesViewModel,
         erp_vm: ERPViewModel,
         parent: QObject | None = None
-    ):
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._preproc_vm = preproc_vm
@@ -67,12 +69,12 @@ class SourceViewModel(ViewModelBase):
         self._inverse_params = create_inverse_params(InverseMethod.MNE)
         self._dipole_params = DipoleFitParams()
 
-        # 结果缓存
-        self._head_model_result: Optional[HeadModelResult] = None
-        self._forward_result: Optional[ForwardModelResult] = None
-        self._inverse_result: Optional[InverseSolutionResult] = None
+        # 结果缓存（存服务层返回的 Result，与 models 层同名类区分）
+        self._head_model_result: HeadModelServiceResult | None = None
+        self._forward_result: ForwardModelServiceResult | None = None
+        self._inverse_result: InverseSolutionServiceResult | None = None
         self._dipole_result: Optional[Any] = None
-        self._viz = None  # 最近一次 3D 可视化对象（供场景导出复用）
+        self._viz: SourceVisualization3D | None = None  # 最近一次 3D 可视化对象（供场景导出复用）
 
         self._processing_steps: list[SourceStepUI] = []
 
@@ -108,7 +110,7 @@ class SourceViewModel(ViewModelBase):
         return self._dataset.eeg_channels if self._dataset else []
 
     # ---- 参数设置 ----
-    def set_head_model_params(self, **kwargs):
+    def set_head_model_params(self, **kwargs: Any) -> None:
         from eeg_workbench.models.source import HeadModelType
         for k, v in kwargs.items():
             if hasattr(self._head_model_params, k):
@@ -116,7 +118,7 @@ class SourceViewModel(ViewModelBase):
                     v = HeadModelType(v)  # 兼容直接传字符串的调用方
                 setattr(self._head_model_params, k, v)
 
-    def set_forward_params(self, **kwargs):
+    def set_forward_params(self, **kwargs: Any) -> None:
         from eeg_workbench.models.source import SourceSpaceType
         for k, v in kwargs.items():
             if hasattr(self._forward_params, k):
@@ -124,20 +126,20 @@ class SourceViewModel(ViewModelBase):
                     v = SourceSpaceType(v)
                 setattr(self._forward_params, k, v)
 
-    def set_inverse_params(self, **kwargs):
+    def set_inverse_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._inverse_params, k):
                 setattr(self._inverse_params, k, v)
 
-    def set_dipole_params(self, **kwargs):
+    def set_dipole_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._dipole_params, k):
                 setattr(self._dipole_params, k, v)
 
-    def apply_head_model_preset(self, preset: str):
+    def apply_head_model_preset(self, preset: str) -> None:
         self._head_model_params = create_head_model_params(preset)
 
-    def apply_inverse_preset(self, method: str, **kwargs):
+    def apply_inverse_preset(self, method: str, **kwargs: Any) -> None:
         method_enum = InverseMethod(method)
         self._inverse_params = create_inverse_params(method_enum, **kwargs)
 
@@ -179,8 +181,8 @@ class SourceViewModel(ViewModelBase):
         return self._do_forward()
 
     def _do_forward(self) -> Any:
-        if not self._head_model_result:
-            self.error_occurred.emit("请先构建头模型")
+        if not self._dataset or not self._head_model_result:
+            self.error_occurred.emit("请先加载数据集并构建头模型")
             return None
 
         self.show_status("正在计算导场矩阵...")
@@ -205,8 +207,8 @@ class SourceViewModel(ViewModelBase):
         return self._do_inverse()
 
     def _do_inverse(self) -> Any:
-        if not self._forward_result:
-            self.error_occurred.emit("请先计算前向模型")
+        if not self._dataset or not self._forward_result:
+            self.error_occurred.emit("请先加载数据集并计算前向模型")
             return None
 
         self.show_status(f"正在计算逆向解 ({self._inverse_params.method.value})...")
@@ -267,7 +269,7 @@ class SourceViewModel(ViewModelBase):
             return False
 
     # ---- 3D 可视化 ----
-    def plot_source_estimate(self, **kwargs):
+    def plot_source_estimate(self, **kwargs: Any) -> Any:
         if not self._inverse_result or not self._inverse_result.stc:
             self.error_occurred.emit("请先计算逆向解")
             return None
@@ -276,7 +278,7 @@ class SourceViewModel(ViewModelBase):
         self._viz = viz
         return viz.plot_source_estimate(self._inverse_result.stc, **kwargs)
 
-    def plot_brain_3d(self, **kwargs):
+    def plot_brain_3d(self, **kwargs: Any) -> Any:
         if not self._inverse_result or not self._inverse_result.stc:
             self.error_occurred.emit("请先计算逆向解")
             return None
@@ -284,7 +286,7 @@ class SourceViewModel(ViewModelBase):
         viz = SourceVisualization3D()
         return viz.plot_source_estimate(self._inverse_result.stc, **kwargs)
 
-    def plot_dipoles_3d(self, **kwargs):
+    def plot_dipoles_3d(self, **kwargs: Any) -> Any:
         if not self._dipole_result:
             self.error_occurred.emit("请先进行偶极子拟合")
             return None
@@ -293,7 +295,7 @@ class SourceViewModel(ViewModelBase):
         self._viz = viz
         return viz.plot_dipoles_3d(self._dipole_result.dipoles, **kwargs)
 
-    def plot_connectivity_3d(self, connectivity_matrix, **kwargs):
+    def plot_connectivity_3d(self, connectivity_matrix: Any, **kwargs: Any) -> Any:
         if not self._inverse_result:
             return None
 
@@ -310,18 +312,21 @@ class SourceViewModel(ViewModelBase):
             **kwargs
         )
 
-    def _surface_vertices(self):
+    def _surface_vertices(self) -> Any:
         """取当前逆解的顶点编号；拿不到就返回空数组而不是抛 AttributeError。"""
         import numpy as np
+        inv = self._inverse_result
+        if inv is None or inv.stc is None:
+            return np.empty(0, dtype=int)
         try:
-            vertices = self._inverse_result.stc.vertices
+            vertices = inv.stc.vertices
             if vertices:
                 return vertices[0]
         except AttributeError:
             pass
         return np.empty(0, dtype=int)
 
-    def _surface_faces(self):
+    def _surface_faces(self) -> Any:
         """从正向解源空间取表面面片（tri / use_tris / faces），取不到返回空网格。
 
         下游 plot_connectivity_3d 只是把 faces 打包进结果字典，
@@ -346,7 +351,7 @@ class SourceViewModel(ViewModelBase):
             return empty
         return empty
 
-    def export_3d_scene(self, filepath: str, format: str = "html"):
+    def export_3d_scene(self, filepath: str, format: str = "html") -> bool:
         if self._viz is None:
             self.error_occurred.emit("请先绘制 3D 源估计或偶极子，再导出场景")
             return False
@@ -358,23 +363,23 @@ class SourceViewModel(ViewModelBase):
             return False
 
     # ---- 内部方法 ----
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self._dataset = dataset
         if dataset:
             self._notify_available_subjects()
         # 转发给本模块 View（View 只订阅此处的信号，不订阅 data_vm）
         self.dataset_changed.emit(dataset)
 
-    def _on_preproc_dataset_changed(self, dataset):
+    def _on_preproc_dataset_changed(self, dataset: EEGDataset | None) -> None:
         if dataset:
             self._dataset = dataset
             self.dataset_changed.emit(dataset)
 
-    def _notify_available_subjects(self):
+    def _notify_available_subjects(self) -> None:
         subjects = ["fsaverage", "fsaverage_sym", "sample", "subject01"]
         self.available_subjects_changed.emit(subjects)
 
-    def _add_step(self, name: str, desc: str, time_ms: float):
+    def _add_step(self, name: str, desc: str, time_ms: float) -> None:
         step = SourceStepUI(name=name, description=desc, completed=True, processing_time_ms=time_ms)
         self._processing_steps.append(step)
         try:
@@ -382,5 +387,5 @@ class SourceViewModel(ViewModelBase):
         except RuntimeError:
             pass  # 计算线程回调时 VM 已随窗口销毁，静默忽略
 
-    def _notify_available_channels(self):
+    def _notify_available_channels(self) -> None:
         pass

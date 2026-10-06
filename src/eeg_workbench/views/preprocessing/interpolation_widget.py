@@ -10,6 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
+from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.preprocessing import BadChannelInterpolationParams, InterpolationMethod
 from eeg_workbench.utils.ui import balance_form
 
@@ -20,13 +21,13 @@ class InterpolationWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: PreprocessingViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -109,18 +110,18 @@ class InterpolationWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.available_channels_changed.connect(self._update_channel_lists)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
             self._update_channel_lists(dataset.ch_names)
             self._update_bad_count()
 
-    def _update_channel_lists(self, channels: list[str]):
+    def _update_channel_lists(self, channels: list[str]) -> None:
         # 更新可用通道列表
         current_available = set()
         for i in range(self._lst_available.count()):
@@ -133,7 +134,7 @@ class InterpolationWidget(QWidget):
         # 更新待插值列表
         self._lst_interp.clear()
 
-    def _update_bad_count(self):
+    def _update_bad_count(self) -> None:
         if self._vm.dataset:
             bad = self._vm.dataset.bad_channels
             self._lbl_bad_count.setText(f"当前坏道: {len(bad)} 个")
@@ -142,7 +143,7 @@ class InterpolationWidget(QWidget):
             else:
                 self._lbl_bad_count.setStyleSheet("font-weight: bold; color: #27ae60;")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.interpolation_params
         self._block_signals(True)
         try:
@@ -154,12 +155,12 @@ class InterpolationWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [self._cmb_method, self._chk_reset_bads]:
             w.blockSignals(block)
 
     @Slot()
-    def _mark_bad(self):
+    def _mark_bad(self) -> None:
         if not self._vm.dataset:
             return
         for item in self._lst_available.selectedItems():
@@ -170,7 +171,7 @@ class InterpolationWidget(QWidget):
         self._vm.dataset_changed.emit(self._vm.dataset)
 
     @Slot()
-    def _unmark_bad(self):
+    def _unmark_bad(self) -> None:
         if not self._vm.dataset:
             return
         for item in self._lst_available.selectedItems():
@@ -182,7 +183,7 @@ class InterpolationWidget(QWidget):
         self._vm.dataset_changed.emit(self._vm.dataset)
 
     @Slot()
-    def _auto_detect_bad(self):
+    def _auto_detect_bad(self) -> None:
         if not self._vm.dataset:
             return
         # 使用数据管理模块的自动检测
@@ -191,7 +192,7 @@ class InterpolationWidget(QWidget):
         self.status_message.emit(f"自动检测到 {count} 个坏段")
 
     @Slot()
-    def _use_all_bad(self):
+    def _use_all_bad(self) -> None:
         if not self._vm.dataset:
             return
         self._lst_interp.clear()
@@ -199,11 +200,11 @@ class InterpolationWidget(QWidget):
             self._lst_interp.addItem(ch)
 
     @Slot()
-    def _clear_interp(self):
+    def _clear_interp(self) -> None:
         self._lst_interp.clear()
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = BadChannelInterpolationParams(
             method=InterpolationMethod(self._cmb_method.currentText()),
             bad_channels=[self._lst_interp.item(i).text() for i in range(self._lst_interp.count())],
@@ -213,7 +214,7 @@ class InterpolationWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_interpolation(self):
+    def _run_interpolation(self) -> None:
         if not self._vm.dataset:
             return
         if self._lst_interp.count() == 0:

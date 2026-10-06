@@ -64,11 +64,23 @@ class EffectSize(Enum):
     CLIFF_DELTA = "cliff_delta"           # Cliff's delta (非参数)
 
 
+# ---- 具名字面量别名：下拉框固定选项与模型字段共享同一类型 ----
+TTestType = Literal["independent", "paired", "one_sample"]
+TestAlternative = Literal["two-sided", "less", "greater"]
+ANOVADesign = Literal["one_way", "two_way", "repeated", "mixed"]
+PostHocMethod = Literal["tukey", "bonferroni", "scheffe", "games_howell"]
+SphericityCorrection = Literal["none", "greenhouse_geisser", "huynh_feldt"]
+PermutationStatistic = Literal["t", "f", "max_t", "max_f"]
+ClusterMethod = Literal["mass", "size", "max_sum"]
+CorrelationMethod = Literal["pearson", "spearman", "kendall", "partial"]
+StatisticsDesign = Literal["two_group", "multi_group", "repeated", "correlation"]
+
+
 @dataclass
 class TTestParams:
     """t 检验参数"""
-    test_type: Literal["independent", "paired", "one_sample"] = "independent"
-    alternative: Literal["two-sided", "less", "greater"] = "two-sided"
+    test_type: TTestType = "independent"
+    alternative: TestAlternative = "two-sided"
     equal_var: bool = False               # Welch 校正
     confidence_level: float = 0.95
     correction: MultipleComparisonCorrection = MultipleComparisonCorrection.NONE
@@ -78,21 +90,21 @@ class TTestParams:
 @dataclass
 class ANOVAParams:
     """方差分析参数"""
-    design: Literal["one_way", "two_way", "repeated", "mixed"] = "one_way"
+    design: ANOVADesign = "one_way"
     factors: list[str] = field(default_factory=list)  # 因子名称
     subject_factor: str | None = None     # 受试者因子 (重复测量)
     corrections: list[MultipleComparisonCorrection] = field(default_factory=lambda: [MultipleComparisonCorrection.FDR_BH])
     post_hoc: bool = True                 # 事后检验
-    post_hoc_method: Literal["tukey", "bonferroni", "scheffe", "games_howell"] = "tukey"
+    post_hoc_method: PostHocMethod = "tukey"
     effect_size: EffectSize = EffectSize.ETA_SQUARED
-    sphericity_correction: Literal["none", "greenhouse_geisser", "huynh_feldt"] = "greenhouse_geisser"
+    sphericity_correction: SphericityCorrection = "greenhouse_geisser"
 
 
 @dataclass
 class NonparametricParams:
     """非参数检验参数"""
     test: StatisticalTest = StatisticalTest.MANN_WHITNEY
-    alternative: Literal["two-sided", "less", "greater"] = "two-sided"
+    alternative: TestAlternative = "two-sided"
     correction: MultipleComparisonCorrection = MultipleComparisonCorrection.FDR_BH
     effect_size: EffectSize = EffectSize.CLIFF_DELTA
 
@@ -101,22 +113,22 @@ class NonparametricParams:
 class PermutationParams:
     """置换检验参数"""
     n_permutations: int = 1000
-    test_statistic: Literal["t", "f", "max_t", "max_f"] = "t"
+    test_statistic: PermutationStatistic = "t"
     tail: int = 0                         # 0=双尾, 1=单尾大于, -1=单尾小于
     n_jobs: int = -1
     seed: int | None = 42
     
     # 簇置换特有
     cluster_threshold: float | None = None    # 簇形成阈值
-    cluster_method: Literal["mass", "size", "max_sum"] = "mass"
+    cluster_method: ClusterMethod = "mass"
     min_cluster_size: int = 2
 
 
 @dataclass
 class CorrelationParams:
     """相关性分析参数"""
-    method: Literal["pearson", "spearman", "kendall", "partial"] = "pearson"
-    alternative: Literal["two-sided", "less", "greater"] = "two-sided"
+    method: CorrelationMethod = "pearson"
+    alternative: TestAlternative = "two-sided"
     confidence_level: float = 0.95
     correction: MultipleComparisonCorrection = MultipleComparisonCorrection.FDR_BH
     
@@ -167,7 +179,7 @@ class ComparisonResult:
     ci_high: float | None = None
     corrected_p: float | None = None
     significant: bool = False
-    details: dict = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -214,8 +226,8 @@ DEFAULT_CORRELATION_PARAMS = CorrelationParams()
 
 
 def create_statistics_params(
-    design: Literal["two_group", "multi_group", "repeated", "correlation"] = "two_group",
-    **overrides
+    design: StatisticsDesign = "two_group",
+    **overrides: Any
 ) -> StatisticsParams:
     """从预设创建统计参数"""
     params = StatisticsParams()

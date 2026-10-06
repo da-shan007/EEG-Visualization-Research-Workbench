@@ -29,7 +29,7 @@ class PreprocessingStepUI:
     """UI 显示用的预处理步骤"""
     name: str
     description: str
-    params: dict
+    params: dict[str, Any]
     enabled: bool = True
     applied: bool = False
 
@@ -50,7 +50,7 @@ class PreprocessingViewModel(ViewModelBase):
         self,
         data_vm: DataManagementViewModel,
         parent: QObject | None = None
-    ):
+    ) -> None:
         super().__init__(parent)
         self._data_vm = data_vm
         self._dataset: Optional[EEGDataset] = None
@@ -123,7 +123,7 @@ class PreprocessingViewModel(ViewModelBase):
         return []
 
     # ---- 参数设置 ----
-    def set_filter_params(self, **kwargs) -> None:
+    def set_filter_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._filter_params, k):
                 setattr(self._filter_params, k, v)
@@ -131,22 +131,22 @@ class PreprocessingViewModel(ViewModelBase):
         if errors:
             self.error_occurred.emit("; ".join(errors))
 
-    def set_reference_params(self, **kwargs) -> None:
+    def set_reference_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._reference_params, k):
                 setattr(self._reference_params, k, v)
 
-    def set_resample_params(self, **kwargs) -> None:
+    def set_resample_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._resample_params, k):
                 setattr(self._resample_params, k, v)
 
-    def set_ica_params(self, **kwargs) -> None:
+    def set_ica_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._ica_params, k):
                 setattr(self._ica_params, k, v)
 
-    def set_interpolation_params(self, **kwargs) -> None:
+    def set_interpolation_params(self, **kwargs: Any) -> None:
         for k, v in kwargs.items():
             if hasattr(self._interp_params, k):
                 setattr(self._interp_params, k, v)
@@ -258,8 +258,8 @@ class PreprocessingViewModel(ViewModelBase):
     @async_slot
     def run_ica_apply(self, exclude: list[int] | None = None) -> ICAResult | None:
         """应用 ICA (排除成分)"""
-        if not self._ica_result or not self._ica_result.ica:
-            self.error_occurred.emit("请先拟合 ICA")
+        if not self._dataset or not self._ica_result or not self._ica_result.ica:
+            self.error_occurred.emit("请先加载数据集并拟合 ICA")
             return None
 
         self.show_status("正在应用 ICA...")
@@ -321,7 +321,7 @@ class PreprocessingViewModel(ViewModelBase):
         try:
             # 1. 滤波
             self._filter_params = create_filter_params("standard")
-            result = self.run_filter()
+            result: FilterResult | ReferenceResult | ICAResult | InterpolationResult | None = self.run_filter()
             if not result:
                 return None
 
@@ -380,25 +380,25 @@ class PreprocessingViewModel(ViewModelBase):
                 self._ica_result.component_labels[idx] = "manual_exclude"
             self.ica_ready.emit(self._ica_result)
 
-    def get_ica_properties(self, comp_idx: int) -> dict:
+    def get_ica_properties(self, comp_idx: int) -> dict[str, Any]:
         """获取成分属性 (用于可视化)"""
         if self._ica_result:
             return self._ica_result.component_properties.get(comp_idx, {})
         return {}
 
-    def plot_ica_components(self, **kwargs) -> None:
+    def plot_ica_components(self, **kwargs: Any) -> None:
         """绘制 ICA 成分图"""
         if self._ica_result:
             service = ICAService()
             service.plot_components(self._ica_result, **kwargs)
 
-    def plot_ica_sources(self, **kwargs) -> None:
+    def plot_ica_sources(self, **kwargs: Any) -> None:
         """绘制 ICA 成分时间序列"""
         if self._ica_result and self._dataset:
             service = ICAService()
             service.plot_sources(self._ica_result, self._dataset, **kwargs)
 
-    def plot_ica_properties(self, picks: list[int], **kwargs) -> None:
+    def plot_ica_properties(self, picks: list[int], **kwargs: Any) -> None:
         """绘制成分属性"""
         if self._ica_result and self._dataset:
             service = ICAService()
@@ -426,7 +426,7 @@ class PreprocessingViewModel(ViewModelBase):
         self._processing_steps.append(step)
         self.preprocessing_steps_changed.emit(self._processing_steps)
 
-    def _update_processing_step(self, name: str, extra_params: dict) -> None:
+    def _update_processing_step(self, name: str, extra_params: dict[str, Any]) -> None:
         if self._processing_steps:
             last = self._processing_steps[-1]
             last.name = name
@@ -444,9 +444,9 @@ class PreprocessingViewModel(ViewModelBase):
                 return f"高通 {params.l_freq}Hz"
             elif params.filter_type == FilterType.LOWPASS:
                 return f"低通 {params.h_freq}Hz"
-            return params.filter_type.value
+            return str(params.filter_type.value)
         elif isinstance(params, ReferenceParams):
-            return params.ref_type.value
+            return str(params.ref_type.value)
         elif isinstance(params, ResampleParams):
             return f"重采样到 {params.sfreq}Hz"
         elif isinstance(params, ICAParams):
@@ -455,7 +455,7 @@ class PreprocessingViewModel(ViewModelBase):
             return f"{params.method.value} 插值 {len(params.bad_channels)} 通道"
         return str(params)
 
-    def _params_to_dict(self, params: Any) -> dict:
+    def _params_to_dict(self, params: Any) -> dict[str, Any]:
         if hasattr(params, "__dataclass_fields__"):
             return {k: getattr(params, k) for k in params.__dataclass_fields__}
         return {}

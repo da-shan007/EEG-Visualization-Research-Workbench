@@ -9,7 +9,7 @@ from PySide6.QtCore import Signal, Slot, QObject, QUrl
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from eeg_workbench.core.base import ViewModelBase, Command, async_slot
-from eeg_workbench.core.events import get_event_bus, EventType
+from eeg_workbench.core.events import get_event_bus, EventType, DomainEvent
 from eeg_workbench.models.dataset import EEGDataset, Event, Montage, ChannelInfo
 from eeg_workbench.models.metadata import DatasetMetadata, SubjectInfo, ExperimentCondition, Sex, GroupType, Handedness
 from eeg_workbench.services.io import ReaderFactory, LoadResult
@@ -50,7 +50,7 @@ class DataManagementViewModel(ViewModelBase):
     loading_progress = Signal(object)         # FileLoadProgress
     event_editor_ready = Signal(object)       # EventEditor
 
-    def __init__(self, parent: QObject | None = None):
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
 
         self._dataset: Optional[EEGDataset] = None
@@ -118,7 +118,7 @@ class DataManagementViewModel(ViewModelBase):
             self.load_file(file_path)
 
     @async_slot
-    def load_file(self, file_path: str, **kwargs) -> LoadResult:
+    def load_file(self, file_path: str, **kwargs: Any) -> LoadResult:
         """异步加载文件（后台线程）"""
         self.show_status(f"正在加载: {Path(file_path).name}")
         self.loading_progress.emit(FileLoadProgress(stage="reading", current=10, total=100, message="读取文件..."))
@@ -188,7 +188,7 @@ class DataManagementViewModel(ViewModelBase):
             self.loading_progress.emit(FileLoadProgress(stage="error", message=str(e)))
             return False
 
-    def _export_table(self, raw, file_path: str, ext: str) -> None:
+    def _export_table(self, raw: Any, file_path: str, ext: str) -> None:
         """导出为表格格式"""
         import pandas as pd
         data = raw.get_data() * 1e6  # V -> µV
@@ -219,7 +219,7 @@ class DataManagementViewModel(ViewModelBase):
         self.montage_changed.emit(None)
 
     # ---- 元数据编辑 ----
-    def update_metadata(self, **fields) -> None:
+    def update_metadata(self, **fields: Any) -> None:
         """更新元数据字段（绑定到表单）"""
         if not self._metadata:
             self._metadata = DatasetMetadata()
@@ -252,17 +252,24 @@ class DataManagementViewModel(ViewModelBase):
             self.metadata_changed.emit(self._metadata)
         return subj
 
-    def add_condition(self, name: str, description: str = "",
-                      event_codes: list[int] = None,
+    def add_condition(self, name: str | ExperimentCondition, description: str = "",
+                      event_codes: list[int] | None = None,
                       tmin: float = -0.2, tmax: float = 0.8) -> ExperimentCondition:
-        """添加实验条件"""
-        cond = ExperimentCondition(
-            name=name,
-            description=description,
-            event_codes=event_codes or [],
-            tmin=tmin,
-            tmax=tmax
-        )
+        """添加实验条件。
+
+        name 可直接传对话框组装好的 ExperimentCondition（保留 trigger_type
+        等字段）；传 str 时按其余参数新建。
+        """
+        if isinstance(name, ExperimentCondition):
+            cond = name
+        else:
+            cond = ExperimentCondition(
+                name=name,
+                description=description,
+                event_codes=event_codes or [],
+                tmin=tmin,
+                tmax=tmax
+            )
         if self._metadata:
             self._metadata.add_condition(cond)
             self.metadata_changed.emit(self._metadata)
@@ -305,9 +312,9 @@ class DataManagementViewModel(ViewModelBase):
         self.dataset_changed.emit(self._dataset)
         return True
 
-    def update_event(self, index: int, **kwargs) -> bool:
+    def update_event(self, index: int, **kwargs: Any) -> bool:
         editor = self.get_event_editor()
-        if not editor or not (0 <= index < len(self._dataset.events)):
+        if not editor or self._dataset is None or not (0 <= index < len(self._dataset.events)):
             return False
         old = self._dataset.events[index]
         new_ev = Event(
@@ -519,19 +526,19 @@ class DataManagementViewModel(ViewModelBase):
             self.channels_changed.emit(self._dataset.ch_names.copy())
 
     # ---- 事件处理器 ----
-    def _on_dataset_loaded(self, event) -> None:
+    def _on_dataset_loaded(self, event: DomainEvent[Any]) -> None:
         payload = event.payload
         # 这里不直接设置 dataset，由 load_file 返回的 LoadResult 处理
         pass
 
-    def _on_dataset_modified(self, event) -> None:
+    def _on_dataset_modified(self, event: DomainEvent[Any]) -> None:
         # 数据集被其他模块修改，刷新视图
         if self._dataset and event.payload.get("dataset_id") == self._dataset.id:
             self.dataset_changed.emit(self._dataset)
             self._refresh_events_view()
             self._refresh_channels_view()
 
-    def _on_events_imported(self, event) -> None:
+    def _on_events_imported(self, event: DomainEvent[Any]) -> None:
         payload = event.payload
         if self._dataset and payload.dataset_id == self._dataset.id:
             self._refresh_events_view()

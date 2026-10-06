@@ -7,9 +7,10 @@ import numpy as np
 
 from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.source import (
-    InverseParams, InverseMethod, ForwardModelResult,
+    InverseParams, InverseMethod,
     SourceAnalysisResult
 )
+from eeg_workbench.services.source.forward_model import ForwardModelResult
 from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPayload
 
 
@@ -113,7 +114,7 @@ class InverseService:
         )
 
     @staticmethod
-    def _compute_noise_cov(raw, params: InverseParams, verbose: bool):
+    def _compute_noise_cov(raw: Any, params: InverseParams, verbose: bool) -> Any:
         """计算噪声协方差矩阵"""
         import mne
         
@@ -132,8 +133,8 @@ class InverseService:
 
     @staticmethod
     def _compute_mne_family(
-        raw, fwd, noise_cov, params: InverseParams, verbose: bool
-    ) -> dict:
+        raw: Any, fwd: Any, noise_cov: Any, params: InverseParams, verbose: bool
+    ) -> dict[str, Any]:
         """计算 MNE/dSPM/sLORETA/eLORETA"""
         import mne
         from mne.minimum_norm import (
@@ -170,8 +171,8 @@ class InverseService:
 
     @staticmethod
     def _compute_beamformer(
-        raw, fwd, noise_cov, params: InverseParams, verbose: bool
-    ) -> dict:
+        raw: Any, fwd: Any, noise_cov: Any, params: InverseParams, verbose: bool
+    ) -> dict[str, Any]:
         """计算 LCMV/SAM 波束成形"""
         import mne
         from mne.beamformer import make_lcmv, apply_lcmv, apply_lcmv_epochs
@@ -198,8 +199,8 @@ class InverseService:
 
     @staticmethod
     def _compute_dics(
-        raw, fwd, noise_cov, params: InverseParams, verbose: bool
-    ) -> dict:
+        raw: Any, fwd: Any, noise_cov: Any, params: InverseParams, verbose: bool
+    ) -> dict[str, Any]:
         """计算 DICS (动态成像相干波束成形)"""
         import mne
         from mne.beamformer import make_dics, apply_dics
@@ -229,8 +230,8 @@ class InverseService:
 
     @staticmethod
     def _compute_sparse_bayesian(
-        raw, fwd, noise_cov, params: InverseParams, verbose: bool
-    ) -> dict:
+        raw: Any, fwd: Any, noise_cov: Any, params: InverseParams, verbose: bool
+    ) -> dict[str, Any]:
         """稀疏贝叶斯方法 (MCE/Gamma MAP)"""
         # MNE 对稀疏贝叶斯支持有限，通常需要外部工具
         # 这里提供接口，实际实现可调用外部工具或使用近似方法
@@ -249,8 +250,8 @@ class InverseService:
 
     @staticmethod
     def apply_inverse_epochs(
-        epochs, inv, params: InverseParams, verbose: bool = False
-    ):
+        epochs: Any, inv: Any, params: InverseParams, verbose: bool = False
+    ) -> Any:
         """对 Epochs 应用逆向解"""
         import mne
         from mne.minimum_norm import apply_inverse_epochs
@@ -266,8 +267,8 @@ class InverseService:
 
     @staticmethod
     def apply_inverse_raw(
-        raw, inv, params: InverseParams, verbose: bool = False
-    ):
+        raw: Any, inv: Any, params: InverseParams, verbose: bool = False
+    ) -> Any:
         """对 Raw 应用逆向解"""
         import mne
         from mne.minimum_norm import apply_inverse
@@ -283,17 +284,17 @@ class InverseService:
 
     @staticmethod
     def morph_to_fsaverage(
-        stc, subject_from: str, subject_to: str = "fsaverage",
+        stc: Any, subject_from: str, subject_to: str = "fsaverage",
         subjects_dir: str | None = None
-    ):
+    ) -> Any:
         """形变到标准脑 (fsaverage)"""
         import mne
         return stc.morph_to(subject_to, subject_from=subject_from, subjects_dir=subjects_dir)
 
     @staticmethod
     def extract_label_time_course(
-        stc, labels, src, mode: str = "mean", verbose: bool = False
-    ):
+        stc: Any, labels: Any, src: Any, mode: str = "mean", verbose: bool = False
+    ) -> Any:
         """提取标签时间序列"""
         import mne
         return mne.extract_label_time_course(stc, labels, src, mode=mode, verbose=verbose)
@@ -303,6 +304,6 @@ def compute_inverse_solution(
     dataset: EEGDataset,
     fwd_result: ForwardModelResult,
     params: InverseParams,
-    **kwargs
+    **kwargs: Any
 ) -> InverseSolutionResult:
     return InverseService.compute(dataset, fwd_result, params, **kwargs)

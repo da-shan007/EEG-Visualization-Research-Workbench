@@ -1,6 +1,6 @@
 """波形图面板"""
 from __future__ import annotations
-from typing import Optional
+from typing import Literal, Optional
 
 from PySide6.QtCore import Signal, Slot, Qt
 from PySide6.QtWidgets import (
@@ -11,7 +11,8 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
-from eeg_workbench.models.visualization import WaveformPlotConfig, PlotType
+from eeg_workbench.models.dataset import EEGDataset, Event
+from eeg_workbench.models.visualization import WaveformPlotConfig, PlotType, WaveformPicks
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -21,13 +22,13 @@ class WaveformWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -156,10 +157,10 @@ class WaveformWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
@@ -167,16 +168,16 @@ class WaveformWidget(QWidget):
             self._update_event_list(dataset.events)
             self._spin_tmax.setValue(dataset.duration)
 
-    def _update_channel_list(self, channels: list[str]):
+    def _update_channel_list(self, channels: list[str]) -> None:
         self._lst_channels.clear()
         for ch in channels:
             self._lst_channels.addItem(ch)
 
-    def _update_event_list(self, events):
+    def _update_event_list(self, events: list[Event] | None) -> None:
         self._lst_events.clear()
         # 获取唯一的事件描述
         descs = set()
-        for ev in events:
+        for ev in events or []:
             descs.add(ev.description)
         for desc in sorted(descs):
             self._lst_events.addItem(desc)
@@ -184,23 +185,24 @@ class WaveformWidget(QWidget):
         for i in range(self._lst_events.count()):
             self._lst_events.item(i).setSelected(True)
 
-    def _invert_selection(self):
+    def _invert_selection(self) -> None:
         for i in range(self._lst_channels.count()):
             item = self._lst_channels.item(i)
             item.setSelected(not item.isSelected())
 
     @Slot()
-    def _on_picks_changed(self, text: str):
+    def _on_picks_changed(self, text: str) -> None:
         self._on_param_changed()
 
     def _collect_config(self) -> WaveformPlotConfig:
         """从界面控件收集波形图配置"""
         # 通道范围
         picks_text = self._cmb_picks.currentText()
-        pick_map = {
+        pick_map: dict[str, Literal["all", "eeg", "eog", "ecg"]] = {
             "所有通道": "all", "仅 EEG": "eeg",
             "仅 EOG": "eog", "仅 ECG": "ecg",
         }
+        picks: WaveformPicks
         if picks_text in pick_map:
             picks = pick_map[picks_text]
         else:
@@ -230,13 +232,13 @@ class WaveformWidget(QWidget):
         )
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         cfg = self._collect_config()
         self._vm.set_waveform_config(**cfg.__dict__)
         self.params_changed.emit()
 
     @Slot()
-    def _plot_waveform(self):
+    def _plot_waveform(self) -> None:
         if self._vm.dataset is None:
             self.status_message.emit("请先加载数据集")
             return
@@ -249,7 +251,7 @@ class WaveformWidget(QWidget):
         self._vm.plot_waveform()
 
     @Slot()
-    def _export_figure(self):
+    def _export_figure(self) -> None:
         if self._vm.dataset is None:
             self.status_message.emit("请先加载数据集")
             return

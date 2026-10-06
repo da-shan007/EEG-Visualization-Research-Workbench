@@ -1,6 +1,7 @@
 """逆向求解面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast, Any
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.source_vm import SourceViewModel
-from eeg_workbench.models.source import InverseParams, InverseMethod
+from eeg_workbench.models.source import InverseParams, InverseMethod, PickOri
 from eeg_workbench.services.source import InverseService
 from eeg_workbench.utils.ui import balance_form
 
@@ -21,13 +22,13 @@ class InverseSolutionWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -169,26 +170,26 @@ class InverseSolutionWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.forward_model_ready.connect(self._on_forward_ready)
         self._vm.inverse_solution_ready.connect(self._on_inverse_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_forward_ready(self, result):
+    def _on_forward_ready(self, result: Any) -> None:
         info = result.leadfield_info
         self._lbl_fwd_info.setText(
             f"导场矩阵: {info['n_sources']} 源 × {info['n_channels']} 通道"
         )
         self._btn_compute.setEnabled(True)
 
-    def _on_inverse_ready(self, result):
+    def _on_inverse_ready(self, result: Any) -> None:
         self.status_message.emit(f"逆向解完成: {result.method}")
 
-    def _on_method_changed(self, method: str):
+    def _on_method_changed(self, method: str) -> None:
         is_mne = method in ("mne", "dspm", "sloreta", "eloreta")
         is_beam = method in ("lcmv", "dics", "sam")
         is_sparse = method in ("mce", "gamma_map")
@@ -199,7 +200,7 @@ class InverseSolutionWidget(QWidget):
         # 更新预设
         self._vm.apply_inverse_preset(method)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.inverse_params
         self._block_signals(True)
         try:
@@ -218,7 +219,7 @@ class InverseSolutionWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_method, self._spin_snr, self._spin_lambda2,
             self._spin_depth, self._spin_loose, self._cmb_pick_ori,
@@ -229,7 +230,7 @@ class InverseSolutionWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _run_inverse(self):
+    def _run_inverse(self) -> None:
         if not self._vm._forward_result:
             QMessageBox.warning(self, "提示", "请先计算前向模型")
             return
@@ -240,7 +241,7 @@ class InverseSolutionWidget(QWidget):
         self._btn_compute.setText("计算逆向解")
 
     @Slot()
-    def _morph_to_fsaverage(self):
+    def _morph_to_fsaverage(self) -> None:
         if not self._vm._inverse_result or not self._vm._inverse_result.stc:
             return
         self._vm._inverse_result.stc = InverseService.morph_to_fsaverage(
@@ -249,14 +250,14 @@ class InverseSolutionWidget(QWidget):
         )
         self.status_message.emit("已形变到 fsaverage")
 
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = InverseParams(
             method=InverseMethod(self._cmb_method.currentText()),
             snr=self._spin_snr.value(),
             lambda2=self._spin_lambda2.value(),
             depth=self._spin_depth.value(),
             loose=self._spin_loose.value(),
-            pick_ori=self._cmb_pick_ori.currentText(),
+            pick_ori=cast(PickOri, self._cmb_pick_ori.currentText()),
             reg=self._spin_reg.value(),
             weight_norm=self._chk_weight_norm.isChecked(),
             reduce_rank=self._chk_reduce_rank.isChecked(),

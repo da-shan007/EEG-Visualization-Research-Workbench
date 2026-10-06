@@ -13,7 +13,7 @@ from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPay
 
 @dataclass
 class DipoleFitResult:
-    dipoles: list[dict]
+    dipoles: list[dict[str, Any]]
     processing_time_ms: float
     params_used: DipoleFitParams
 
@@ -65,25 +65,25 @@ class DipoleFitService:
         return DipoleFitResult(dipoles=dipoles, processing_time_ms=elapsed, params_used=params)
 
     @staticmethod
-    def _auto_initial_guess(raw) -> np.ndarray:
+    def _auto_initial_guess(raw: Any) -> np.ndarray:
         try:
             import mne
             guess = mne.fit_dipole._initial_guess(raw.info)
-            return guess
+            return np.asarray(guess, dtype=float)
         except:
             return np.array([0.0, 0.0, 0.04])
 
     @staticmethod
-    def _fit_least_squares(raw, params: DipoleFitParams, initial_pos, verbose: bool):
+    def _fit_least_squares(raw: Any, params: DipoleFitParams, initial_pos: np.ndarray, verbose: bool) -> list[dict[str, Any]]:
         import mne
         dipoles, _ = mne.fit_dipole(raw, covariance=None, bem=None, trans=None, verbose=verbose)
         return DipoleFitService._convert_mne_dipoles(dipoles)
 
     @staticmethod
-    def _fit_nelder_mead(raw, params: DipoleFitParams, initial_pos, verbose: bool):
+    def _fit_nelder_mead(raw: Any, params: DipoleFitParams, initial_pos: np.ndarray, verbose: bool) -> list[dict[str, Any]]:
         from scipy.optimize import minimize
         
-        def objective(x):
+        def objective(x: np.ndarray) -> Any:
             pos = x[:3]
             ori = x[3:6] / (np.linalg.norm(x[3:6]) + 1e-12)
             amp = x[6]
@@ -102,10 +102,10 @@ class DipoleFitService:
         return DipoleFitService._extract_dipoles_from_result(result, raw.times, raw)
 
     @staticmethod
-    def _fit_differential_evolution(raw, params: DipoleFitParams, initial_pos, verbose: bool):
+    def _fit_differential_evolution(raw: Any, params: DipoleFitParams, initial_pos: np.ndarray, verbose: bool) -> list[dict[str, Any]]:
         from scipy.optimize import differential_evolution
         
-        def objective(x):
+        def objective(x: np.ndarray) -> Any:
             pos = x[:3]
             ori = x[3:6] / (np.linalg.norm(x[3:6]) + 1e-12)
             amp = x[6]
@@ -123,12 +123,12 @@ class DipoleFitService:
         return DipoleFitService._extract_dipoles_from_result(result, raw.times, raw)
 
     @staticmethod
-    def _dipole_field(pos: np.ndarray, ori: np.ndarray, amp: float, info) -> np.ndarray:
+    def _dipole_field(pos: np.ndarray, ori: np.ndarray, amp: float, info: Any) -> np.ndarray:
         # 简化实现，实际应使用 MNE forward 模块
         return np.zeros((len(info["ch_names"]), 100))
 
     @staticmethod
-    def _convert_mne_dipoles(mne_dipoles) -> list[dict]:
+    def _convert_mne_dipoles(mne_dipoles: Any) -> list[dict[str, Any]]:
         dipoles = []
         for dip in mne_dipoles:
             dipoles.append({
@@ -138,7 +138,7 @@ class DipoleFitService:
         return dipoles
 
     @staticmethod
-    def _extract_dipoles_from_result(result, times, raw=None) -> list[dict]:
+    def _extract_dipoles_from_result(result: Any, times: Any, raw: Any = None) -> list[dict[str, Any]]:
         x = result.x
         if raw is not None:
             # 残差相对信号方差 -> goodness-of-fit (0~1，越接近 1 越好)
@@ -157,5 +157,5 @@ class DipoleFitService:
         }]
 
 
-def fit_dipoles(dataset: EEGDataset, params: DipoleFitParams, **kwargs) -> DipoleFitResult:
+def fit_dipoles(dataset: EEGDataset, params: DipoleFitParams, **kwargs: Any) -> DipoleFitResult:
     return DipoleFitService.fit(dataset, params, **kwargs)

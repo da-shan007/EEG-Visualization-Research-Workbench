@@ -25,14 +25,14 @@ class ERPMainWidget(QWidget):
     status_message = Signal(str)
     dataset_changed = Signal(object)  # EEGDataset
 
-    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: ERPViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._dataset: Optional[EEGDataset] = None
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
@@ -97,7 +97,7 @@ class ERPMainWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.erp_result.connect(self._on_erp_result)
         self._vm.erds_result.connect(self._on_erds_result)
@@ -109,7 +109,7 @@ class ERPMainWidget(QWidget):
         self._erds_widget.status_message.connect(self.status_message.emit)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset: Optional[EEGDataset]):
+    def _on_dataset_changed(self, dataset: Optional[EEGDataset]) -> None:
         self._dataset = dataset
         enabled = dataset is not None
         self.setEnabled(enabled)
@@ -126,21 +126,21 @@ class ERPMainWidget(QWidget):
         self.dataset_changed.emit(dataset)
 
     @Slot(object)
-    def _on_erp_result(self, result: ERPAnalysisResult):
+    def _on_erp_result(self, result: ERPAnalysisResult) -> None:
         self._add_history(f"ERP分析: {list(result.result.evokeds.keys())} ({len(result.result.peaks)} 条件有峰值)")
         self.status_message.emit(f"ERP 分析完成，耗时 {result.processing_time_ms:.1f}ms")
 
     @Slot(object)
-    def _on_erds_result(self, result: ERDSAnalysisResult):
+    def _on_erds_result(self, result: ERDSAnalysisResult) -> None:
         self._add_history(f"ERD/ERS分析: {list(result.result.tfrs.keys())} x {len(result.result.band_erds.get(list(result.result.tfrs.keys())[0], {}))} 频段")
         self.status_message.emit(f"ERD/ERS 分析完成，耗时 {result.processing_time_ms:.1f}ms")
 
-    def _add_history(self, desc: str):
+    def _add_history(self, desc: str) -> None:
         item = QListWidgetItem(f"✓ {desc}")
         self._history_list.addItem(item)
 
     @Slot()
-    def _run_erp_analysis(self):
+    def _run_erp_analysis(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -156,7 +156,7 @@ class ERPMainWidget(QWidget):
         self._btn_run_erp.setText("运行 ERP 分析")
 
     @Slot()
-    def _run_erds_analysis(self):
+    def _run_erds_analysis(self) -> None:
         if not self._dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -171,7 +171,7 @@ class ERPMainWidget(QWidget):
         self._btn_run_erds.setText("运行 ERD/ERS")
 
     @Slot()
-    def _export_erp(self):
+    def _export_erp(self) -> None:
         if not self._vm._erp_result:
             QMessageBox.information(self, "提示", "没有 ERP 结果可导出")
             return
@@ -181,7 +181,7 @@ class ERPMainWidget(QWidget):
             self._vm.export_erp_results(path)
 
     @Slot()
-    def _export_erds(self):
+    def _export_erds(self) -> None:
         if not self._vm._erds_result:
             QMessageBox.information(self, "提示", "没有 ERD/ERS 结果可导出")
             return

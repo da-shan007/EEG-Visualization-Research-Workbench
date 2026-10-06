@@ -1,6 +1,7 @@
 """T 检验面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -11,7 +12,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
-from eeg_workbench.models.statistics import TTestParams, MultipleComparisonCorrection
+from eeg_workbench.models.statistics import TTestParams, MultipleComparisonCorrection, TTestType, TestAlternative
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -21,13 +22,13 @@ class TTestWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -135,20 +136,20 @@ class TTestWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _on_type_changed(self, test_type: str):
+    def _on_type_changed(self, test_type: str) -> None:
         is_two_sample = test_type in ("independent", "paired")
         self._two_sample_group.setVisible(is_two_sample)
         self._one_sample_group.setVisible(not is_two_sample)
         self._on_param_changed()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.ttest_params
         self._block_signals(True)
         try:
@@ -160,7 +161,7 @@ class TTestWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_test_type, self._cmb_alternative, self._chk_equal_var,
             self._spin_confidence, self._cmb_correction, self._spin_popmean
@@ -168,10 +169,10 @@ class TTestWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = TTestParams(
-            test_type=self._cmb_test_type.currentText(),
-            alternative=self._cmb_alternative.currentText(),
+            test_type=cast(TTestType, self._cmb_test_type.currentText()),
+            alternative=cast(TestAlternative, self._cmb_alternative.currentText()),
             equal_var=self._chk_equal_var.isChecked(),
             confidence_level=self._spin_confidence.value(),
             correction=MultipleComparisonCorrection(self._cmb_correction.currentText()),
@@ -180,7 +181,7 @@ class TTestWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _run_ttest(self):
+    def _run_ttest(self) -> None:
         # 这里需要数据输入对话框
         from PySide6.QtWidgets import QDialog, QFormLayout, QDialogButtonBox, QComboBox
         dlg = QDialog(self)
@@ -200,5 +201,5 @@ class TTestWidget(QWidget):
             self.status_message.emit("请先准备分组数据，然后调用 run_ttest 方法")
 
     @Slot()
-    def _run_effect_size(self):
+    def _run_effect_size(self) -> None:
         self.status_message.emit("效应量计算功能待集成")

@@ -1,6 +1,7 @@
 """连通性可视化面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
-from eeg_workbench.models.visualization import ConnectivityPlotConfig
+from eeg_workbench.models.visualization import ConnectivityPlotConfig, GraphLayout
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -20,13 +21,13 @@ class ConnectivityWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -136,7 +137,7 @@ class ConnectivityWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._cmb_type.currentTextChanged.connect(self._on_type_changed)
         for w in [self._cmb_matrix_cmap, self._cmb_layout]:
@@ -155,12 +156,12 @@ class ConnectivityWidget(QWidget):
         # 初始同步
         self._sync_from_vm()
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
     @Slot(str)
-    def _on_type_changed(self, text: str):
+    def _on_type_changed(self, text: str) -> None:
         is_matrix = "矩阵" in text
         is_graph = "图" in text and "3D" not in text
         is_3d = "3D" in text
@@ -170,7 +171,7 @@ class ConnectivityWidget(QWidget):
         self._3d_group.setVisible(is_3d)
         self._on_param_changed()
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.conn_params
         self._block_signals(True)
         try:
@@ -187,14 +188,14 @@ class ConnectivityWidget(QWidget):
             self._block_signals(False)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ConnectivityPlotConfig(
             visualization_type=self._cmb_type.currentText(),
             matrix_cmap=self._cmb_matrix_cmap.currentText(),
             matrix_vmin=self._spin_vmin.value(),
             matrix_vmax=self._spin_vmax.value(),
             graph_threshold=self._spin_threshold.value(),
-            graph_layout=self._cmb_layout.currentText(),
+            graph_layout=cast(GraphLayout, self._cmb_layout.currentText()),
             node_size=float(self._spin_node_size.value()),
             edge_width_scale=self._spin_edge_scale.value(),
             show_brain_surface=self._chk_brain_surface.isChecked(),
@@ -206,7 +207,7 @@ class ConnectivityWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _plot_connectivity(self):
+    def _plot_connectivity(self) -> None:
         if not self._vm.dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -215,13 +216,13 @@ class ConnectivityWidget(QWidget):
         self._vm.plot_connectivity()
 
     @Slot()
-    def _export_figure(self):
+    def _export_figure(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出连通性图", "", "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)")
         if path:
             self._vm.export_figure(path=path)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_type, self._cmb_matrix_cmap, self._spin_vmin, self._spin_vmax,
             self._spin_threshold, self._cmb_layout, self._spin_node_size,

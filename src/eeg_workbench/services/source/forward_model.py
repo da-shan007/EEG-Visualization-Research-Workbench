@@ -6,7 +6,8 @@ import time
 import numpy as np
 
 from eeg_workbench.models.dataset import EEGDataset
-from eeg_workbench.models.source import ForwardModelParams, HeadModelResult, SourceSpaceType
+from eeg_workbench.models.source import ForwardModelParams, SourceSpaceType
+from eeg_workbench.services.source.head_model import HeadModelResult
 from eeg_workbench.core.events import get_event_bus, EventType, PreprocessingPayload
 
 
@@ -17,7 +18,7 @@ class ForwardModelResult:
     src: Any  # mne.SourceSpaces
     processing_time_ms: float
     params_used: ForwardModelParams
-    leadfield_info: dict
+    leadfield_info: dict[str, Any]
 
 
 class ForwardModelService:
@@ -107,7 +108,7 @@ class ForwardModelService:
         params: ForwardModelParams,
         verbose: bool,
         is_spherical: bool = False,
-        sphere: dict | None = None
+        sphere: dict[str, Any] | None = None
     ) -> Any:
         """设置源空间"""
         import mne
@@ -164,7 +165,7 @@ class ForwardModelService:
 
     @staticmethod
     def compute_leadfield(
-        fwd,
+        fwd: Any,
         picks: list[int] | None = None
     ) -> np.ndarray:
         """提取导场矩阵"""
@@ -172,16 +173,16 @@ class ForwardModelService:
             gain = fwd["sol"][picks]
         else:
             gain = fwd["sol"]
-        return gain
+        return np.asarray(gain)
 
     @staticmethod
-    def compute_sensitivity(fwd) -> np.ndarray:
+    def compute_sensitivity(fwd: Any) -> np.ndarray:
         """计算敏感度图"""
         import mne
-        return mne.sensitivity_map(fwd, ch_type="eeg", mode="fixed")
+        return np.asarray(mne.sensitivity_map(fwd, ch_type="eeg", mode="fixed"))
 
     @staticmethod
-    def plot_sensitivity(fwd, **kwargs):
+    def plot_sensitivity(fwd: Any, **kwargs: Any) -> Any:
         """敏感度预览 Figure（可嵌入 Qt 画布）。
 
         注：mne 1.13 没有 mne.viz.plot_sensitivity_map，此处用
@@ -195,6 +196,6 @@ def compute_forward_solution(
     dataset: EEGDataset,
     head_model: HeadModelResult,
     params: ForwardModelParams,
-    **kwargs
+    **kwargs: Any
 ) -> ForwardModelResult:
     return ForwardModelService.compute(dataset, head_model, params, **kwargs)

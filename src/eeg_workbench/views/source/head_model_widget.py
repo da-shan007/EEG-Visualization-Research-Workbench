@@ -1,6 +1,7 @@
 """头模型构建面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -24,13 +25,13 @@ class HeadModelWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -188,19 +189,19 @@ class HeadModelWidget(QWidget):
         self._fig_canvas = None
         self._connect_type_signals()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.head_model_ready.connect(self._on_head_model_preview)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _connect_type_signals(self):
+    def _connect_type_signals(self) -> None:
         self._cmb_type.currentTextChanged.connect(self._on_type_changed)
 
     @Slot(str)
-    def _on_type_changed(self, type_str: str):
+    def _on_type_changed(self, type_str: str) -> None:
         is_bem = type_str == "bem"
         is_sphere = type_str == "spherical"
 
@@ -208,13 +209,13 @@ class HeadModelWidget(QWidget):
         self._sphere_group.setVisible(is_sphere)
         self._on_param_changed()
 
-    def _apply_preset(self):
+    def _apply_preset(self) -> None:
         preset = self._cmb_preset.currentText()
         self._vm.apply_head_model_preset(preset)
         self._sync_from_vm()
         self.status_message.emit(f"已应用预设: {preset}")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.head_model_params
         self._block_signals(True)
         try:
@@ -233,14 +234,14 @@ class HeadModelWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [self._cmb_type, self._spin_scalp, self._spin_skull, self._spin_brain,
                   self._edit_subject, self._edit_subjects_dir, self._spin_sphere_radius,
                   self._spin_sphere_x, self._spin_sphere_y, self._spin_sphere_z]:
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = HeadModelParams(
             model_type=HeadModelType(self._cmb_type.currentText()),
             conductivity=(self._spin_scalp.value(), self._spin_skull.value(), self._spin_brain.value()),
@@ -253,25 +254,25 @@ class HeadModelWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _browse_subjects_dir(self):
+    def _browse_subjects_dir(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         dir_path = QFileDialog.getExistingDirectory(self, "选择 SUBJECTS_DIR")
         if dir_path:
             self._edit_subjects_dir.setText(dir_path)
 
     @Slot()
-    def _browse_trans(self):
+    def _browse_trans(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(self, "选择变换文件", "", "FIF 文件 (*.fif *.trans.fif)")
         if path:
             self._edit_trans_file.setText(path)
 
     @Slot()
-    def _run_build(self):
+    def _run_build(self) -> None:
         self._vm.run_head_model()
 
     @Slot(object)
-    def _on_head_model_preview(self, result):
+    def _on_head_model_preview(self, result: Any) -> None:
         """构建完成后渲染几何预览（失败只提示，不弹错）。"""
         try:
             if result.model_type == HeadModelType.BEM:

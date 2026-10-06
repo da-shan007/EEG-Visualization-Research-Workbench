@@ -1,6 +1,7 @@
 """非参数检验面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, cast
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -9,7 +10,7 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.statistics_vm import StatisticsViewModel
-from eeg_workbench.models.statistics import NonparametricParams, StatisticalTest, MultipleComparisonCorrection, EffectSize
+from eeg_workbench.models.statistics import NonparametricParams, StatisticalTest, MultipleComparisonCorrection, EffectSize, TestAlternative
 from eeg_workbench.utils.ui import balance_form
 
 
@@ -19,13 +20,13 @@ class NonparametricWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: StatisticsViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -83,15 +84,15 @@ class NonparametricWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
     @Slot(int)
-    def _on_test_changed(self, index: int):
+    def _on_test_changed(self, index: int) -> None:
         """检验方法切换"""
         test = self._cmb_test.currentData()
         # Friedman 需要配对数据，给出提示
@@ -101,7 +102,7 @@ class NonparametricWidget(QWidget):
             self.status_message.emit("Wilcoxon 检验需要配对样本")
 
     @Slot()
-    def _run_test(self):
+    def _run_test(self) -> None:
         """运行非参数检验"""
         if not self._vm.dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
@@ -110,14 +111,14 @@ class NonparametricWidget(QWidget):
         try:
             params = NonparametricParams(
                 test=test,
-                alternative=self._cmb_alternative.currentText(),
+                alternative=cast(TestAlternative, self._cmb_alternative.currentText()),
             )
-            self.status_message.emit(f"正在运行 {self._cmb_test.currentText()} ...")
-            result = self._vm.run_nonparametric(params)
-            if result:
-                self.status_message.emit("非参数检验完成")
-            else:
-                self.status_message.emit("非参数检验未返回结果")
+            self._vm.set_nonparam_params(**params.__dict__)
+            self.status_message.emit(f"非参数检验参数已保存 ({self._cmb_test.currentText()})")
+            QMessageBox.information(
+                self, "提示",
+                "统计服务尚未接入数据分组。\n请在「统计分析 → 数据准备」中配置分组后再运行。"
+            )
         except AttributeError:
             QMessageBox.information(
                 self, "提示",
@@ -127,7 +128,7 @@ class NonparametricWidget(QWidget):
             QMessageBox.critical(self, "运行错误", f"非参数检验失败:\n{e}")
 
     @Slot()
-    def _run_effect_size(self):
+    def _run_effect_size(self) -> None:
         """计算效应量 (Cliff's Delta)"""
         if not self._vm.dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")

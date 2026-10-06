@@ -87,7 +87,7 @@ class EventsImportedPayload:
 class PreprocessingPayload:
     dataset_id: str
     step: str
-    params: dict
+    params: dict[str, Any]
 
 
 @dataclass
@@ -105,7 +105,7 @@ class ProgressPayload:
     message: str = ""
 
 
-Callback = Callable[[DomainEvent], None]
+Callback = Callable[[DomainEvent[Any]], None]
 
 
 class EventBus:
@@ -115,14 +115,14 @@ class EventBus:
     _lock = Lock()
     _initialized: bool = False
 
-    def __new__(cls):
+    def __new__(cls) -> EventBus:
         with cls._lock:
             if cls._instance is None:
                 cls._instance = super().__new__(cls)
                 cls._instance._initialized = False
             return cls._instance
 
-    def __init__(self):
+    def __init__(self) -> None:
         if self._initialized:
             return
         self._subscribers: Dict[EventType, List[Callback]] = defaultdict(list)
@@ -133,7 +133,7 @@ class EventBus:
         """订阅特定事件类型，返回取消订阅函数"""
         self._subscribers[event_type].append(callback)
 
-        def unsubscribe():
+        def unsubscribe() -> None:
             self._subscribers[event_type].remove(callback)
 
         return unsubscribe
@@ -142,12 +142,12 @@ class EventBus:
         """订阅所有事件"""
         self._wildcard_subscribers.append(callback)
 
-        def unsubscribe():
+        def unsubscribe() -> None:
             self._wildcard_subscribers.remove(callback)
 
         return unsubscribe
 
-    def publish(self, event_or_type: DomainEvent | EventType, payload: Any = None, source: str = "") -> None:
+    def publish(self, event_or_type: DomainEvent[Any] | EventType, payload: Any = None, source: str = "") -> None:
         """同步发布事件，兼容两种调用方式：
         - publish(DomainEvent(...))
         - publish(EventType.X, payload, source='...')
@@ -172,7 +172,7 @@ class EventBus:
             except Exception as e:
                 print(f"[EventBus] Wildcard subscriber error: {e}")
 
-    def publish_async(self, event_or_type: DomainEvent | EventType, payload: Any = None, source: str = "") -> None:
+    def publish_async(self, event_or_type: DomainEvent[Any] | EventType, payload: Any = None, source: str = "") -> None:
         """异步发布（投递到 Qt 事件循环或线程池）"""
         # 这里简单用 QTimer.singleShot 0 延迟到事件循环
         try:

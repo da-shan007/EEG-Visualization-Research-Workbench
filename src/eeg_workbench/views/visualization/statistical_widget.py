@@ -1,5 +1,6 @@
 """统计图面板"""
 from __future__ import annotations
+from eeg_workbench.models.dataset import EEGDataset
 from typing import Optional
 
 from PySide6.QtCore import Signal, Slot
@@ -11,8 +12,18 @@ from PySide6.QtWidgets import (
 )
 
 from eeg_workbench.viewmodels.visualization_vm import VisualizationViewModel
-from eeg_workbench.models.visualization import StatisticalPlotConfig
+from eeg_workbench.models.visualization import StatisticalPlotConfig, StatPlotType
 from eeg_workbench.utils.ui import balance_form
+
+
+# 下拉显示文本（中文）→ StatisticalPlotConfig.plot_type 取值
+_PLOT_TYPE_DISPLAY: dict[str, StatPlotType] = {
+    "柱状图": "bar", "小提琴图": "violin", "箱线图": "box",
+    "雨云图": "raincloud", "森林图": "forest", "效应量图": "effect_size",
+}
+_PLOT_TYPE_VALUE_TO_DISPLAY: dict[StatPlotType, str] = {
+    v: k for k, v in _PLOT_TYPE_DISPLAY.items()
+}
 
 
 class StatisticalWidget(QWidget):
@@ -21,13 +32,13 @@ class StatisticalWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: VisualizationViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -131,18 +142,18 @@ class StatisticalWidget(QWidget):
 
         layout.addStretch()
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.stat_params
         self._block_signals(True)
         try:
-            self._cmb_plot_type.setCurrentText(params.plot_type)
+            self._cmb_plot_type.setCurrentText(_PLOT_TYPE_VALUE_TO_DISPLAY[params.plot_type])
             self._cmb_effect_size.setCurrentText(params.effect_size_type)
             self._chk_confidence.setChecked(params.show_confidence)
             self._spin_conf_level.setValue(params.confidence_level)
@@ -151,12 +162,12 @@ class StatisticalWidget(QWidget):
             self._spin_jitter.setValue(params.point_jitter)
             self._chk_significance.setChecked(params.show_significance)
             self._chk_brackets.setChecked(params.significance_brackets)
-            self._edit_group_order.setText(params.group_order or "")
-            self._edit_hue_order.setText(params.hue_order or "")
+            self._edit_group_order.setText(",".join(params.group_order) if params.group_order else "")
+            self._edit_hue_order.setText(",".join(params.hue_order) if params.hue_order else "")
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_plot_type, self._cmb_effect_size, self._chk_confidence,
             self._spin_conf_level, self._chk_individual, self._spin_point_alpha,
@@ -166,9 +177,10 @@ class StatisticalWidget(QWidget):
             w.blockSignals(block)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = StatisticalPlotConfig(
-            plot_type=self._cmb_plot_type.currentText(),
+            plot_type=_PLOT_TYPE_DISPLAY.get(
+                self._cmb_plot_type.currentText(), "bar"),
             effect_size_type=self._cmb_effect_size.currentText(),
             show_confidence=self._chk_confidence.isChecked(),
             confidence_level=self._spin_conf_level.value(),
@@ -184,7 +196,7 @@ class StatisticalWidget(QWidget):
         self.params_changed.emit()
 
     @Slot()
-    def _plot_statistical(self):
+    def _plot_statistical(self) -> None:
         if not self._vm.dataset:
             QMessageBox.warning(self, "提示", "请先加载数据集")
             return
@@ -193,7 +205,7 @@ class StatisticalWidget(QWidget):
         self._vm.plot_statistical()
 
     @Slot()
-    def _export_figure(self):
+    def _export_figure(self) -> None:
         from PySide6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getSaveFileName(self, "导出统计图", "", "PNG (*.png);;PDF (*.pdf);;SVG (*.svg)")
         if path:

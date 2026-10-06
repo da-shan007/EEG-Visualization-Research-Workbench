@@ -222,7 +222,7 @@ def extract_epochs_as_dataset(
     """提取 Epochs 并转为独立的 EEGDataset（每个 epoch 一个）"""
     from eeg_workbench.models.dataset import EpochData
 
-    epochs = []
+    epochs: list[EEGDataset] = []
     for ev in dataset.events:
         if ev.description in event_descriptions:
             start = ev.onset + tmin

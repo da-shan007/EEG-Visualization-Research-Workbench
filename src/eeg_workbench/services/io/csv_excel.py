@@ -21,7 +21,7 @@ class TableReader(BaseReader):
     EXTENSIONS = (".csv", ".txt", ".tsv", ".xlsx", ".xls", ".ods")
     FORMAT_NAME = "Table (CSV/Excel/TXT)"
 
-    def read(self, file_path: str, **kwargs) -> LoadResult:
+    def read(self, file_path: str, **kwargs: Any) -> LoadResult:
         path = Path(file_path)
         ext = path.suffix.lower()
 

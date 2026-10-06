@@ -1,6 +1,7 @@
 """前向模型 (导场矩阵) 面板"""
 from __future__ import annotations
-from typing import Optional
+from eeg_workbench.models.dataset import EEGDataset
+from typing import Optional, Any
 
 from PySide6.QtCore import Signal, Slot
 from PySide6.QtWidgets import (
@@ -20,13 +21,13 @@ class ForwardModelWidget(QWidget):
     params_changed = Signal()
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: SourceViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -142,22 +143,22 @@ class ForwardModelWidget(QWidget):
 
         self._fig_canvas = None
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
         self._vm.head_model_ready.connect(self._on_head_model_ready)
         self._vm.forward_model_ready.connect(self._on_forward_ready)
 
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         enabled = dataset is not None
         self.setEnabled(enabled)
         if dataset:
             self._lbl_info.setText(f"数据集: {dataset.name} | {dataset.n_channels} 通道 | {dataset.sfreq:.1f} Hz")
 
-    def _on_head_model_ready(self, result):
+    def _on_head_model_ready(self, result: Any) -> None:
         self._lbl_head_model.setText(f"头模型: {result.model_type.value} ({result.subject})")
         self._btn_compute.setEnabled(True)
 
-    def _on_forward_ready(self, result):
+    def _on_forward_ready(self, result: Any) -> None:
         info = result.leadfield_info
         self._lbl_fwd_info.setText(
             f"导场矩阵: {info['n_sources']} 源 × {info['n_channels']} 通道 | "
@@ -167,7 +168,7 @@ class ForwardModelWidget(QWidget):
         self._render_sensitivity()
 
     @Slot()
-    def _run_forward(self):
+    def _run_forward(self) -> None:
         if not self._vm._head_model_result:
             QMessageBox.warning(self, "提示", "请先构建头模型")
             return
@@ -178,10 +179,10 @@ class ForwardModelWidget(QWidget):
         self._btn_compute.setText("计算导场矩阵")
 
     @Slot()
-    def _plot_sensitivity(self):
+    def _plot_sensitivity(self) -> None:
         self._render_sensitivity()
 
-    def _render_sensitivity(self):
+    def _render_sensitivity(self) -> None:
         """敏感度图内嵌渲染（替代原来的外部弹窗）。"""
         if not self._vm._forward_result:
             return
@@ -194,7 +195,7 @@ class ForwardModelWidget(QWidget):
             self._lbl_preview_hint.setText(f"敏感度图生成失败: {e}")
             self.status_message.emit(f"敏感度图失败: {e}")
 
-    def _sync_from_vm(self):
+    def _sync_from_vm(self) -> None:
         params = self._vm.forward_params
         self._block_signals(True)
         try:
@@ -211,7 +212,7 @@ class ForwardModelWidget(QWidget):
         finally:
             self._block_signals(False)
 
-    def _block_signals(self, block: bool):
+    def _block_signals(self, block: bool) -> None:
         for w in [
             self._cmb_src_type, self._cmb_spacing, self._spin_volume_spacing,
             self._chk_add_dist, self._chk_fixed, self._chk_use_cps,
@@ -220,7 +221,7 @@ class ForwardModelWidget(QWidget):
             w.blockSignals(block)
 
     @Slot(str)
-    def _on_src_type_changed(self, type_str: str):
+    def _on_src_type_changed(self, type_str: str) -> None:
         is_volume = type_str == "volume"
         self._spin_volume_spacing.setVisible(is_volume)
         self._cmb_spacing.setVisible(not is_volume)
@@ -228,7 +229,7 @@ class ForwardModelWidget(QWidget):
         self._chk_use_cps.setVisible(not is_volume)
 
     @Slot()
-    def _on_param_changed(self):
+    def _on_param_changed(self) -> None:
         params = ForwardModelParams(
             source_space_type=SourceSpaceType(self._cmb_src_type.currentText()),
             spacing=self._cmb_spacing.currentText() if self._cmb_src_type.currentText() != "volume" else self._spin_volume_spacing.value(),

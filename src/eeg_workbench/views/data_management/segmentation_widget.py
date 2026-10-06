@@ -13,26 +13,32 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.viewmodels.data_management_vm import DataManagementViewModel
 from eeg_workbench.services.segmentation import crop_dataset, concatenate_datasets, CropResult
+from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.utils.ui import balance_form
 
 
 class ConcatenateDialog(QDialog):
     """多文件拼接对话框"""
 
-    def __init__(self, base_dataset, parent=None):
+    def __init__(self, base_dataset: EEGDataset | None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("拼接数据集")
         self.setModal(True)
         self.resize(500, 400)
         self._base_dataset = base_dataset
-        self._file_paths = []
+        self._file_paths: list[str] = []
         self._setup_ui()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
 
         # 说明
-        info = QLabel(f"基础数据集: {self._base_dataset.name} ({self._base_dataset.n_channels}ch, {self._base_dataset.sfreq:.1f}Hz)")
+        base = self._base_dataset
+        base_desc = (
+            f"{base.name} ({base.n_channels}ch, {base.sfreq:.1f}Hz)"
+            if base is not None else "无（将以首个文件为基准）"
+        )
+        info = QLabel(f"基础数据集: {base_desc}")
         info.setWordWrap(True)
         info.setStyleSheet("color: #666; font-size: 12px;")
         layout.addWidget(info)
@@ -79,7 +85,7 @@ class ConcatenateDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
-    def _add_files(self):
+    def _add_files(self) -> None:
         filters = "EEG 数据 (*.edf *.bdf *.vhdr *.set *.csv *.tsv *.xlsx);;所有文件 (*.*)"
         files, _ = QFileDialog.getOpenFileNames(self, "选择要拼接的文件", "", filters)
         for f in files:
@@ -89,14 +95,14 @@ class ConcatenateDialog(QDialog):
                 item.setToolTip(f)
                 self._list.addItem(item)
 
-    def _remove_selected(self):
+    def _remove_selected(self) -> None:
         for item in self._list.selectedItems():
             path = item.text()
             if path in self._file_paths:
                 self._file_paths.remove(path)
             self._list.takeItem(self._list.row(item))
 
-    def _clear_list(self):
+    def _clear_list(self) -> None:
         self._file_paths.clear()
         self._list.clear()
 
@@ -116,13 +122,13 @@ class SegmentationWidget(QWidget):
     dataset_changed = Signal(object)  # EEGDataset
     status_message = Signal(str)
 
-    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None):
+    def __init__(self, viewmodel: DataManagementViewModel, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self._vm = viewmodel
         self._setup_ui()
         self._connect_signals()
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(12)
@@ -240,11 +246,11 @@ class SegmentationWidget(QWidget):
         # 初始禁用
         self.setEnabled(False)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
         self._vm.dataset_changed.connect(self._on_dataset_changed)
 
     @Slot(object)
-    def _on_dataset_changed(self, dataset):
+    def _on_dataset_changed(self, dataset: EEGDataset | None) -> None:
         self.setEnabled(dataset is not None)
         if dataset:
             self._lbl_duration.setText(f"{dataset.duration:.3f} 秒 ({dataset.n_samples} 样本点)")
@@ -252,7 +258,7 @@ class SegmentationWidget(QWidget):
             self._spin_tmax.setMaximum(dataset.duration)
             self._spin_tmax.setValue(dataset.duration)
 
-    def _quick_crop(self, tmin: float, tmax: float):
+    def _quick_crop(self, tmin: float, tmax: float) -> None:
         ds = self._vm.dataset
         if not ds:
             return
@@ -261,7 +267,7 @@ class SegmentationWidget(QWidget):
         self._spin_tmax.setValue(tmax)
         self._do_crop()
 
-    def _crop_last_10(self):
+    def _crop_last_10(self) -> None:
         ds = self._vm.dataset
         if not ds:
             return
@@ -271,7 +277,7 @@ class SegmentationWidget(QWidget):
         self._spin_tmax.setValue(tmax)
         self._do_crop()
 
-    def _crop_middle_30(self):
+    def _crop_middle_30(self) -> None:
         ds = self._vm.dataset
         if not ds:
             return
@@ -283,7 +289,7 @@ class SegmentationWidget(QWidget):
         self._do_crop()
 
     @Slot()
-    def _do_crop(self):
+    def _do_crop(self) -> None:
         ds = self._vm.dataset
         if not ds:
             return
@@ -312,7 +318,7 @@ class SegmentationWidget(QWidget):
         self._btn_crop.setText("执行裁剪")
 
     @Slot()
-    def _do_concatenate(self):
+    def _do_concatenate(self) -> None:
         ds = self._vm.dataset
         if not ds:
             return
@@ -338,7 +344,7 @@ class SegmentationWidget(QWidget):
             self._btn_concat.setText("选择文件并拼接...")
 
     @Slot()
-    def _do_split(self):
+    def _do_split(self) -> None:
         ds = self._vm.dataset
         if not ds:
             return
