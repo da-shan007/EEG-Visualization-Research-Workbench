@@ -110,20 +110,49 @@ src/eeg_workbench/
 
 ```bash
 # 方式一：一键运行（本地启动器，无需敲命令）
-双击项目根目录下的 `启动EEGWorkbench.exe`
-（注：它是启动器外壳，运行时需要同目录下的 `src/` 与 `.venv/`，单个 exe 拷走用不了；便携单文件版见下）
+双击项目根目录下的 启动EEGWorkbench.exe
+（注：它是启动器外壳，运行时需要同目录下的 src/ 与 .venv/）
 ```
 
-```bash
-# 方式二：源码运行
+### 命令行运行（推荐）
+
+**Windows（PowerShell）**
+
+```powershell
+# 1. 下载源码
+git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
+cd EEG-Visualization-Research-Workbench
+
+# 2. 创建虚拟环境并安装依赖（约 3-5 分钟）
 conda env create -f environment.yml
 conda activate eeg-workbench
+
+# 3. 启动（必须先 cd src）
 cd src
 python -m eeg_workbench
+```
 
-# 安装后
+**macOS / Linux（bash）**
+
+```bash
+git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
+cd EEG-Visualization-Research-Workbench
+conda env create -f environment.yml
+conda activate eeg-workbench
+cd src && python -m eeg_workbench
+```
+
+**已安装（pip）**
+
+```bash
+pip install -e .
 eeg-workbench
 ```
+
+常见问题：
+- 找不到 `eeg-workbench` 命令 → 用 `python -m eeg_workbench`（需在 `src/` 目录下）
+- 依赖冲突 → 确认用 `conda activate eeg-workbench` 激活了正确环境
+- Linux 无显示环境 → 设置 `QT_QPA_PLATFORM=offscreen` 或安装 xvfb
 
 ## 测试与质量
 
