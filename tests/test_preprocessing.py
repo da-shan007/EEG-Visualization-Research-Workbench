@@ -290,23 +290,33 @@ class TestICAService:
 
 
 class TestInterpolationService:
+    # 8 通道稀疏布局做球面拟合时，MNE 一定会报这三类信息性 RuntimeWarning
+    #（数字化点少/头模半径外推/拟合原点偏移），属预期行为而非产品 bug，此处显式忽略。
+    @pytest.mark.filterwarnings(
+        "ignore:Only \\d+ head digitization points.*:RuntimeWarning",
+        "ignore:Estimated head radius.*:RuntimeWarning",
+        "ignore:.*more than 20 mm from head frame origin:RuntimeWarning",
+    )
     def test_spherical_interpolation(self):
-        ds = make_test_dataset(n_ch=8, n_samples=1000)
+        ch_names = ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"]
+        ds = make_test_dataset(n_ch=8, n_samples=1000, ch_names=ch_names)
         # 标记坏道
-        ds = ds.set_bad_channels(["Ch0"])
-        # 添加蒙版位置
+        ds = ds.set_bad_channels(["Fp1"])
+        # 真实 10-20 位置（标准蒙版单位为米，Montage 模型使用毫米）
         from eeg_workbench.models.dataset import Montage
-        positions = {f"Ch{i}": (i*10, 0, 0) for i in range(8)}
-        montage = Montage(name="test", positions=positions)
+        from eeg_workbench.utils.montage import make_standard_montage_compat
+        std_pos = make_standard_montage_compat("standard_1020").get_positions()["ch_pos"]
+        positions = {ch: tuple(np.asarray(std_pos[ch]) * 1000) for ch in ch_names}
+        montage = Montage(name="standard_1020", positions=positions)
         ds = ds.set_montage(montage)
 
         params = BadChannelInterpolationParams(
             method=InterpolationMethod.SPHERICAL,
-            bad_channels=["Ch0"]
+            bad_channels=["Fp1"]
         )
         result = InterpolationService.apply(ds, params)
         assert result.dataset is not None
-        assert "Ch0" not in result.dataset.bad_channels  # 已重置
+        assert "Fp1" not in result.dataset.bad_channels  # 已重置
 
     def test_nearest_neighbor_interpolation(self):
         ds = make_test_dataset(n_ch=8, n_samples=1000)

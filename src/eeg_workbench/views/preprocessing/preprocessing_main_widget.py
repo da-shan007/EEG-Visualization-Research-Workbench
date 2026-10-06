@@ -11,9 +11,11 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.preprocessing_vm import PreprocessingViewModel
-from eeg_workbench.views.preprocessing import (
-    FilterWidget, ReferenceWidget, ResampleWidget, ICAWidget, InterpolationWidget
-)
+from .filter_widget import FilterWidget
+from .ica_widget import ICAWidget
+from .interpolation_widget import InterpolationWidget
+from .reference_widget import ReferenceWidget
+from .resample_widget import ResampleWidget
 from eeg_workbench.models.dataset import EEGDataset
 
 

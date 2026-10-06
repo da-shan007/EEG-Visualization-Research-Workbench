@@ -76,7 +76,7 @@ from .services.erp import (
 from .services.source import (
     HeadModelService, ForwardModelService, InverseService, DipoleFitService, SourceVisualization3D,
     build_head_model, compute_forward_solution, compute_inverse_solution, fit_dipoles,
-    HeadModelResult, ForwardModelResult, InverseSolutionResult, DipoleFitResult
+    HeadModelResult as HeadModelServiceResult, ForwardModelResult as ForwardModelServiceResult, InverseSolutionResult as InverseSolutionServiceResult, DipoleFitResult as DipoleFitServiceResult
 )
 from .services.statistics import (
     StatisticalTestService, PermutationService, CorrelationService,
@@ -113,7 +113,7 @@ from .views.preprocessing import (
     ICAWidget, InterpolationWidget, PreprocessingMainWidget
 )
 from .views.features import (
-    BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget,
+    BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget as FeaturesConnectivityWidget,
     NonlinearWidget, FeaturesMainWidget
 )
 from .views.erp import (
@@ -199,7 +199,7 @@ __all__ = [
     # Source Services
     "HeadModelService", "ForwardModelService", "InverseService", "DipoleFitService", "SourceVisualization3D",
     "build_head_model", "compute_forward_solution", "compute_inverse_solution", "fit_dipoles",
-    "HeadModelResult", "ForwardModelResult", "InverseSolutionResult", "DipoleFitResult",
+    "HeadModelServiceResult", "ForwardModelServiceResult", "InverseSolutionServiceResult", "DipoleFitServiceResult",
     # Statistics Services
     "StatisticalTestService", "PermutationService", "CorrelationService",
     "MultipleComparisonService", "EffectSizeService",
@@ -222,7 +222,7 @@ __all__ = [
     "EventEditorWidget", "SegmentationWidget",
     "FilterWidget", "ReferenceWidget", "ResampleWidget",
     "ICAWidget", "InterpolationWidget", "PreprocessingMainWidget",
-    "BandPowerWidget", "TimeFrequencyWidget", "ConnectivityWidget",
+    "BandPowerWidget", "TimeFrequencyWidget", "FeaturesConnectivityWidget",
     "NonlinearWidget", "FeaturesMainWidget",
     "ERPConditionWidget", "ERPPeakWidget", "ERDSWidget", "ERPMainWidget",
     "HeadModelWidget", "ForwardModelWidget", "InverseSolutionWidget",

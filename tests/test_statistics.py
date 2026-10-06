@@ -105,8 +105,10 @@ class TestStatisticalTestService:
     def test_ttest_one_sample(self):
         g1, _ = make_two_groups()
         params = TTestParams(test_type="one_sample")
-        result = StatisticalTestService.run_ttest(g1, np.array([0.0]), params)
+        result = StatisticalTestService.run_ttest(g1, None, params)
         assert result is not None
+        assert 0 <= result.result.p_value <= 1
+        assert result.group_stats["group2"] is None
 
     def test_nonparametric_mann_whitney(self):
         g1, g2 = make_two_groups()

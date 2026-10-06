@@ -198,7 +198,8 @@ class TestPreviewPlots:
         from matplotlib.figure import Figure
         sphere = mne.make_sphere_model(verbose=False)
         info = mne.create_info(["Cz", "Pz", "Oz", "Fz"], 256.0, "eeg")
-        info.set_montage(mne.channels.make_standard_montage("standard_1020"))
+        from eeg_workbench.utils.montage import make_standard_montage_compat
+        info.set_montage(make_standard_montage_compat("standard_1020"))
         src = mne.setup_volume_source_space(sphere=sphere, pos=30.0, verbose=False)
         fwd = mne.make_forward_solution(info, trans=None, src=src, bem=sphere,
                                         eeg=True, meg=False, verbose=False)

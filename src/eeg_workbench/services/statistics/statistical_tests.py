@@ -118,7 +118,11 @@ class StatisticalTestService:
             ),
             group_stats={
                 "group1": {"mean": np.mean(group1), "std": np.std(group1, ddof=1), "n": len(group1)},
-                "group2": {"mean": np.mean(group2), "std": np.std(group2, ddof=1), "n": len(group2)} if group2 is not None else None
+                "group2": (
+                    {"mean": np.mean(group2), "std": np.std(group2, ddof=1), "n": len(group2)}
+                    if (group2 is not None and params.test_type != "one_sample" and len(group2) > 1)
+                    else None
+                ),
             },
             processing_time_ms=0  # 会在外部设置
         )

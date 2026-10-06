@@ -11,9 +11,10 @@ from PySide6.QtWidgets import (
 
 from eeg_workbench.utils.ui import wrap_scroll
 from eeg_workbench.viewmodels.features_vm import FeaturesViewModel
-from eeg_workbench.views.features import (
-    BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget, NonlinearWidget
-)
+from .band_power_widget import BandPowerWidget
+from .connectivity_widget import ConnectivityWidget
+from .nonlinear_widget import NonlinearWidget
+from .time_frequency_widget import TimeFrequencyWidget
 from eeg_workbench.models.dataset import EEGDataset
 from eeg_workbench.models.features import FeatureExtractionResult
 from eeg_workbench.utils.ui import balance_form, relay_status

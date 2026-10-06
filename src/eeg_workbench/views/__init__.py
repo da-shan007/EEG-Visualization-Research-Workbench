@@ -10,7 +10,7 @@ from .preprocessing import (
 )
 
 from .features import (
-    BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget,
+    BandPowerWidget, TimeFrequencyWidget, ConnectivityWidget as FeaturesConnectivityWidget,
     NonlinearWidget, FeaturesMainWidget
 )
 
@@ -46,7 +46,7 @@ __all__ = [
     "PreprocessingMainWidget",
     "BandPowerWidget",
     "TimeFrequencyWidget",
-    "ConnectivityWidget",
+    "FeaturesConnectivityWidget",
     "NonlinearWidget",
     "FeaturesMainWidget",
     "ERPConditionWidget", "ERPPeakWidget", "ERDSWidget", "ERPMainWidget",
