@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](environment.yml)
 [![MNE-Python 1.13](https://img.shields.io/badge/MNE--Python-1.13-orange.svg)](https://mne.tools)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](启动EEGWorkbench.exe)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)
 
 科研级 EEG 分析桌面软件：从数据导入到源定位的完整分析流水线（PySide6 + MNE-Python）。
 
@@ -110,7 +110,7 @@ src/eeg_workbench/
 
 ```bash
 # 方式一：一键运行（推荐，无需安装 Python）
-双击 启动EEGWorkbench.exe
+去 [Releases 页](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)下载 `启动EEGWorkbench.exe`，双击即用
 ```
 
 ```bash
