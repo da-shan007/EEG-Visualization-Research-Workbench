@@ -86,7 +86,7 @@ src/eeg_workbench/
 
 | 项目 | 要求 |
 |------|------|
-| 一键版 | Windows 64 位，双击 `启动EEGWorkbench.exe`，无需 Python |
+| 一键版 | Windows 64 位，项目自带启动器（需同目录 `src/` + `.venv/`） |
 | 源码版 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
 
 ## 依赖环境 (实测可复现)
@@ -109,8 +109,9 @@ src/eeg_workbench/
 ## 快速开始
 
 ```bash
-# 方式一：一键运行（推荐，无需安装 Python）
-去 [Releases 页](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)下载 `启动EEGWorkbench.exe`，双击即用
+# 方式一：一键运行（本地启动器，无需敲命令）
+双击项目根目录下的 `启动EEGWorkbench.exe`
+（注：它是启动器外壳，运行时需要同目录下的 `src/` 与 `.venv/`，单个 exe 拷走用不了；便携单文件版见下）
 ```
 
 ```bash
