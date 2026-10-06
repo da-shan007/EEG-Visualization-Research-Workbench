@@ -8,6 +8,14 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 import pytest
 
+# 图形测试的中文标题需要 CJK 字体；CI/无桌面字体的机器上 ensure_cjk_font
+# 返回 None，仅保留 DejaVu 并继续（缺字形告警由具体测试自行处理）。
+try:
+    from eeg_workbench.utils.fonts import ensure_cjk_font
+    ensure_cjk_font()
+except Exception:
+    pass
+
 # legacy 根包 eeg_workbench/ 与 src/eeg_workbench 同名冲突；
 # 以别名 eeg_workbench_legacy 注册，供 test_eeg_core / test_research 针对 legacy API 的测试使用
 _legacy_dir = Path(__file__).parent.parent / "eeg_workbench"

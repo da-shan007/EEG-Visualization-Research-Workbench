@@ -333,7 +333,9 @@ class TestInterpolationService:
 # ---- 集成测试 ----
 class TestPreprocessingPipeline:
     def test_standard_pipeline(self):
-        ds = make_test_dataset(n_ch=8, n_samples=5000)
+        # 标准预处理含 0.1Hz 高通，其 auto FIR 长度约 8251 点；
+        # 用 9000 点（36 秒）仿真更接近真实记录长度，避免 MNE 短信号失真警告。
+        ds = make_test_dataset(n_ch=8, n_samples=9000)
 
         # 1. 滤波
         result = FilterService.standard_preprocessing(ds)
@@ -357,7 +359,7 @@ class TestPreprocessingPipeline:
         assert ds.sfreq == 128.0
 
     def test_processing_history_recorded(self):
-        ds = make_test_dataset()
+        ds = make_test_dataset(n_samples=9000)  # 同上：长于 0.1Hz 高通 auto 滤波器长度
         original_history_len = len(ds.processing_history)
 
         result = FilterService.standard_preprocessing(ds)
