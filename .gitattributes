@@ -1,0 +1,7 @@
+# 统一换行符，避免跨平台协作踩坑。
+#
+# *.sh 必须保持 LF：若在 Windows 上被写成 CRLF，Linux 上执行 bash 会报
+# `$'\r': command not found` / `bad interpreter: /usr/bin/env bash^M`，
+# 而且这类问题只在 Linux 机器上暴露，本地测不出来。
+* text=auto
+*.sh text eol=lf

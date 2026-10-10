@@ -7,6 +7,9 @@
 #   3. type    —— mypy  informational（非阻断），先收集存量错误，`mypy --strict` 迁移完成后再启用。
 #
 # 本地等价命令见 AGENTS.md / README。
+#
+# 矩阵覆盖 Windows + Ubuntu 两个 runner：项目需同时在两端可运行，
+# Linux 侧额外安装 Qt xcb 系统依赖与中文字体（见 test job 的 apt 步骤）。
 
 name: CI
 
@@ -27,8 +30,12 @@ env:
 
 jobs:
   lint:
-    name: Lint (bug-finding rules only)
-    runs-on: windows-latest
+    name: Lint (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
 
@@ -49,11 +56,12 @@ jobs:
         run: python -m mypy src/eeg_workbench --ignore-missing-imports --no-error-summary
 
   test:
-    name: Tests (Python ${{ matrix.python-version }})
-    runs-on: windows-latest
+    name: Tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-latest, ubuntu-latest]
         python-version: ["3.14"]
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +71,20 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
           cache-dependency-path: requirements-lock.txt
+
+      # PySide6 的 Qt xcb 平台插件与字体栈不在 pip wheel 里，需系统级安装；
+      # 中文字体缺失会让图形/界面中文渲染成方框（测试虽不因此失败，但会让
+      # 字体相关断言失去意义），故一并装上。
+      - name: Install Linux system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 libgl1 libglx-mesa0 libopengl0 libxkbcommon-x11-0 \
+            libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+            libxcb-xinerama0 libxcb-xkb1 libfontconfig1 \
+            fonts-noto-cjk fonts-wqy-microhei
 
       - name: Install exact locked environment
         run: |
@@ -81,7 +103,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: pytest-log
+          name: pytest-log-${{ matrix.os }}
           path: |
             pytest_full.log
             .pytest_cache/**

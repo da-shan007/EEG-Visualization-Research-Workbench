@@ -19,7 +19,12 @@ from .validators import (
     validate_dataset_complete,
 )
 from .ui import balance_form, wrap_scroll, embed_figure
-from .fonts import ensure_cjk_font, CANDIDATE_CJK_FONTS
+from .fonts import (
+    ensure_cjk_font,
+    ensure_qt_cjk_font,
+    missing_cjk_font_hint,
+    CANDIDATE_CJK_FONTS,
+)
 
 __all__ = [
     "standard_montage_names",
@@ -41,5 +46,7 @@ __all__ = [
     "wrap_scroll",
     "embed_figure",
     "ensure_cjk_font",
+    "ensure_qt_cjk_font",
+    "missing_cjk_font_hint",
     "CANDIDATE_CJK_FONTS",
 ]

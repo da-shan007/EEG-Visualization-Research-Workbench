@@ -586,6 +586,18 @@ def main() -> int:
     except Exception:
         _cjk = None
 
+    # 配置 Qt 界面中文字体（Linux 最小化安装常无中文字体，否则整个界面是方框）。
+    # 必须在 QApplication 构造之后调用。
+    try:
+        from eeg_workbench.utils.fonts import ensure_qt_cjk_font, missing_cjk_font_hint
+        _cjk = ensure_qt_cjk_font(app) or _cjk
+        _hint = missing_cjk_font_hint()
+    except Exception:
+        _hint = None
+    if _hint:
+        # 非阻塞提示：Linux 桌面缺中文字体时界面本身仍是方框，必须让用户知道原因
+        print(f"[EEG Workbench] {_hint}", file=sys.stderr, flush=True)
+
     window = MainWindow()
     window.show()
 

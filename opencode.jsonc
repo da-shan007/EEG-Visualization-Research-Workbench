@@ -18,10 +18,16 @@
       // ---- 新增：MNE-Python 分析服务（本项目的核心 EEG 处理库）----
       // 41 个结构化工具：读取/滤波/重参考/ICA/epoch/ERP/时频/源定位/连接性/解码
       // 会话常驻，载入一次 Raw 后逐步处理；PNG 结果写入 results 目录
+      //
+      // 解释器路径由环境变量 EEG_WORKBENCH_PYTHON 提供（该仓库原先硬编码了
+      // 一条 Windows 绝对路径，Linux/macOS 上必然失效）。未设置时展开为空串，
+      // 服务会启动失败，因此请按平台导出：
+      //   Linux / macOS : export EEG_WORKBENCH_PYTHON="$PWD/.venv/bin/python"
+      //   Windows (PS)  : $env:EEG_WORKBENCH_PYTHON = "$PWD\.venv\Scripts\python.exe"
       "mne": {
         "type": "local",
         "command": [
-          "D:\\EEG-Visualization-Research-Workbench\\.venv\\Scripts\\python.exe",
+          "{env:EEG_WORKBENCH_PYTHON}",
           "-m",
           "mne_mcp",
           "serve",

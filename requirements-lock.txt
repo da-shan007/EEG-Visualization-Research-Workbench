@@ -1,7 +1,16 @@
 ﻿# EEG Workbench - exact environment lock
-# Generated: 2026-10-05 from .venv (Python 3.14.0)
+# Generated: 2026-10-05 from .venv (Python 3.14.0, Windows 64-bit)
 # Reproduce: python -m pip install -r requirements-lock.txt
 # Total packages: 140
+#
+# 跨平台说明（本文件同时适用于 Linux / macOS）：
+#   · Windows 专有依赖（pywin32 等）已加 `; sys_platform == "win32"` 标记，
+#     在 Linux 上会被自动跳过，不会因「无该平台 wheel」而安装失败。
+#   · 其余条目均为 PyPI 上的通用 wheel/sdist，两平台通用。
+#   · Linux 还需要若干**系统级**库（PySide6 的 xcb 依赖、中文字体），
+#     pip 装不上，见 README「Linux 系统依赖」一节。
+#   · 该锁文件由 Windows 环境生成，Linux 上如有更优的传递依赖版本，
+#     以 `pip install -r requirements.txt`（按平台解析）为准。
 
 aiofile==3.12.3
 altgraph==0.17.5
@@ -110,8 +119,10 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.4
 python-multipart==0.0.32
 pytokens==0.4.1
-pywin32==312
-pywin32-ctypes==0.2.3
+# Windows-only: pywin32 has no Linux wheel and its sdist fails to build there.
+# Guarded with a platform marker so this lock installs on Linux/macOS too.
+pywin32==312; sys_platform == "win32"
+pywin32-ctypes==0.2.3; sys_platform == "win32"
 PyYAML==6.0.3
 referencing==0.37.0
 requests==2.34.2

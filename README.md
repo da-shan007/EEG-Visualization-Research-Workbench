@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](environment.yml)
 [![MNE-Python 1.13](https://img.shields.io/badge/MNE--Python-1.13-orange.svg)](https://mne.tools)
-[![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases) [![Platform: Linux](https://img.shields.io/badge/platform-Linux-lightgrey.svg)](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)
 
 科研级 EEG 分析桌面软件：从数据导入到源定位的完整分析流水线（PySide6 + MNE-Python）。
 
@@ -86,8 +86,9 @@ src/eeg_workbench/
 
 | 项目 | 要求 |
 |------|------|
-| 一键版 | Windows 64 位，项目自带启动器（需同目录 `src/` + `.venv/`） |
+| 一键版 | Windows 64 位：双击 `启动EEGWorkbench.exe`；Linux/macOS：执行 `./run.sh`（等价脚本，自动建 venv 装依赖） |
 | 源码版 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
+| Linux 额外要求 | pip 装不上 Qt 的 xcb 平台插件与中文字体，需系统级安装，见下方「Linux 系统依赖」 |
 
 ## 依赖环境 (实测可复现)
 
@@ -108,10 +109,41 @@ src/eeg_workbench/
 
 ## 快速开始
 
+**方式一：一键运行（无需敲命令）**
+
+| 平台 | 操作 |
+|------|------|
+| Windows | 双击项目根目录下的 `启动EEGWorkbench.exe` |
+| Linux / macOS | `./run.sh`（首次自动创建 `.venv` 并安装依赖，约 3-5 分钟；之后直接秒启） |
+
+> 两者都要求同目录下有 `src/`；Windows 的 `.exe` 另外要求 `.venv/`（由启动器自身保证），`run.sh` 则会自己创建。
+
+### Linux 系统依赖（先装这些，否则 Qt 起不来）
+
+`PySide6` 的 pip wheel **不包含** xcb 平台插件和中文字体，必须系统级安装：
+
 ```bash
-# 方式一：一键运行（本地启动器，无需敲命令）
-双击项目根目录下的 启动EEGWorkbench.exe
-（注：它是启动器外壳，运行时需要同目录下的 src/ 与 .venv/）
+# Debian / Ubuntu
+sudo apt install python3.12 python3.12-venv python3-pip
+sudo apt install libegl1 libgl1 libglx-mesa0 libopengl0 libxkbcommon-x11-0 \
+                 libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+                 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 \
+                 libxcb-xinerama0 libxcb-xkb1 libfontconfig1
+sudo apt install fonts-noto-cjk fonts-wqy-microhei    # 中文字体，缺了界面/图形全是方框
+
+# Fedora
+sudo dnf install python3.12 python3.12-pip
+sudo dnf install mesa-libGL mesa-libEGL libxkbcommon-x11 dbus-libs fontconfig \
+                 google-noto-sans-cjk-fonts wqy-microhei-fonts
+
+# Arch
+sudo pacman -S python python-pip noto-fonts-cjk wqy-microhei
+```
+
+装完先验证 Qt 本身能起来（这一步过了，pip 依赖装好后程序就能跑）：
+
+```bash
+python -c "from PySide6.QtWidgets import QApplication; print('Qt OK')"
 ```
 
 ### 命令行运行（推荐）
@@ -137,9 +169,19 @@ python -m eeg_workbench
 ```bash
 git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
 cd EEG-Visualization-Research-Workbench
+
+# 路线 A：一键脚本（建 venv + 装依赖 + 启动）
+./run.sh
+
+# 路线 B：conda
 conda env create -f environment.yml
 conda activate eeg-workbench
-cd src && python -m eeg_workbench
+PYTHONPATH=src python -m eeg_workbench
+
+# 路线 C：venv + pip
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements-lock.txt
+PYTHONPATH=src python -m eeg_workbench
 ```
 
 **已安装（pip）**
@@ -150,9 +192,11 @@ eeg-workbench
 ```
 
 常见问题：
-- 找不到 `eeg-workbench` 命令 → 用 `python -m eeg_workbench`（需在 `src/` 目录下）
+- 找不到 `eeg-workbench` 命令 → 用 `PYTHONPATH=src python -m eeg_workbench`（Windows：`cd src` 后 `python -m eeg_workbench`）
 - 依赖冲突 → 确认用 `conda activate eeg-workbench` 激活了正确环境
-- Linux 无显示环境 → 设置 `QT_QPA_PLATFORM=offscreen` 或安装 xvfb
+- Linux 报 `Could not load the Qt platform plugin "xcb"` → 缺系统库，见上方「Linux 系统依赖」
+- Linux 界面/图形中文全是方框 → 没装中文字体，启动时 stderr 会打印安装提示
+- Linux 无显示环境 → 设置 `QT_QPA_PLATFORM=offscreen` 或安装 xvfb（也可直接 `./run.sh --offscreen`）
 
 ## 测试与质量
 
@@ -166,6 +210,18 @@ mypy src/eeg_workbench --strict
 # 代码格式
 ruff check src/eeg_workbench
 black src/eeg_workbench
+```
+
+无显示器环境下加 `QT_QPA_PLATFORM=offscreen` 即可跑 GUI 测试（Windows / Linux 通用）：
+
+```powershell
+# Windows (PowerShell)
+$env:QT_QPA_PLATFORM='offscreen'; pytest tests/ -q
+```
+
+```bash
+# Linux / macOS
+QT_QPA_PLATFORM=offscreen pytest tests/ -q
 ```
 
 ## 典型分析流程
@@ -199,7 +255,8 @@ outputs/
 
 ## 故障排除
 
-- **中文显示异常**: 已内置中文字体自动加载，无需配置；如仍有方框请提 issue。
+- **中文显示异常**: Qt 界面与 matplotlib 图形都会自动探测系统中文字体（Windows/macOS/Linux 各自的候选列表见 `src/eeg_workbench/utils/fonts.py`）。若启动时 stderr 打印了「未检测到中文字体」，按提示装 `fonts-noto-cjk` / `fonts-wqy-microhei` 即可；仍未生效请提 issue。
+- **Linux Qt 起不来**: `qt.qpa.plugin: Could not load the Qt platform plugin "xcb"` 表示缺系统库，见「Linux 系统依赖」。
 - **窄带滤波警告** (`filter_length`): 窄带 FIR 需要物理最小长度，极短数据段无法满足是正常现象，用更长的数据段即可，不是 bug。
 - **MNE 版本**: 依赖已用 `requirements-lock.txt` 锁定为 MNE 1.13.2，自行升级可能遇到 `standard_1020` 等 API 更名问题（代码内已有兼容层）。
 
