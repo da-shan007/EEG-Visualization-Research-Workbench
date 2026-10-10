@@ -113,10 +113,10 @@ src/eeg_workbench/
 
 | 平台 | 操作 |
 |------|------|
-| Windows | 双击项目根目录下的 `启动EEGWorkbench.exe` |
+| Windows | 双击项目根目录下的 `启动EEGWorkbench.exe`（该文件被 `.gitignore` 排除，不随仓库分发，需要时用 PyInstaller 自行打包，或改走下面的「命令行运行」） |
 | Linux / macOS | `./run.sh`（首次自动创建 `.venv` 并安装依赖，约 3-5 分钟；之后直接秒启） |
 
-> 两者都要求同目录下有 `src/`；Windows 的 `.exe` 另外要求 `.venv/`（由启动器自身保证），`run.sh` 则会自己创建。
+> 两者都要求同目录下有 `src/`；Windows 的 `.exe` 另外要求 `.venv/`（由启动器自身保证），`run.sh` 则会自己创建。`run.sh` 随仓库分发，开箱即用。
 
 ### Linux 系统依赖（先装这些，否则 Qt 起不来）
 

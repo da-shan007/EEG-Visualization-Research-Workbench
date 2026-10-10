@@ -208,10 +208,3 @@ verify_balance.py
 verify_erp_balance.py
 physionet_pipeline.py
 launcher.py
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
