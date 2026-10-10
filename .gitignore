@@ -207,4 +207,7 @@ ui_ratio_probe.py
 verify_balance.py
 verify_erp_balance.py
 physionet_pipeline.py
-launcher.py
+
+# 注意：launcher.py 不再忽略 —— 它是 Windows 发行版的构建输入
+# （release workflow 用 PyInstaller 打成 启动EEGWorkbench.exe），
+# 必须随仓库分发才能在 CI 里构建 Windows 包。构建产物 *.exe 仍被忽略。

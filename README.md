@@ -82,13 +82,29 @@ src/eeg_workbench/
 4. **MNE 无缝互操作**: `dataset.to_mne_raw()` / `EEGDataset.from_mne_raw(raw)`
 5. **跨版本兼容**: `utils.montage.make_standard_montage_compat` 自动处理 MNE 1.13+ `standard_1020`→`colin27_1020` 重命名
 
+## 平台支持
+
+本项目**只支持 Windows 与 Linux 两个平台**。CI 在 `windows-latest` 与 `ubuntu-latest`
+两个 runner 上分别跑完整测试套件，两端均为绿灯。
+
+> **macOS 尚未适配**：没有 CI 覆盖，Qt 与部分科学计算依赖在 macOS 上的行为也未验证。
+> 请不要在 macOS 上使用本项目。
+
+| 平台 | 支持状态 | 启动方式 | Release 产物 |
+|------|----------|----------|-------------|
+| Windows 64 位 | ✅ 支持（CI 覆盖） | 双击 `启动EEGWorkbench.exe`，或命令行运行 | `EEGWorkbench-<版本>-win64.exe` |
+| Linux x86_64 | ✅ 支持（CI 覆盖） | `./run.sh` | `EEGWorkbench-<版本>-linux-x86_64.tar.gz` |
+
+两个平台的安装步骤见下方「[快速开始](#快速开始)」，Release 下载见
+[Releases](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)。
+
 ## 系统要求
 
 | 项目 | 要求 |
 |------|------|
-| 一键版 | Windows 64 位：双击 `启动EEGWorkbench.exe`；Linux/macOS：执行 `./run.sh`（等价脚本，自动建 venv 装依赖） |
-| 源码版 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
-| Linux 额外要求 | pip 装不上 Qt 的 xcb 平台插件与中文字体，需系统级安装，见下方「Linux 系统依赖」 |
+| Windows | 64 位；需要 Microsoft Visual C++ 2015-2022 运行库；中文界面使用系统自带字体（微软雅黑 / 黑体），无需额外安装 |
+| Linux | x86_64；**pip 装不上 Qt 的 xcb 平台插件与中文字体**，必须系统级安装，见下方「[Linux 系统依赖](#linux-系统依赖先装这些否则-qt-起不来)」；无显示器时需 xvfb 或设置 `QT_QPA_PLATFORM=offscreen` |
+| 共同 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
 
 ## 依赖环境 (实测可复现)
 
@@ -109,14 +125,71 @@ src/eeg_workbench/
 
 ## 快速开始
 
-**方式一：一键运行（无需敲命令）**
+### Windows
 
-| 平台 | 操作 |
-|------|------|
-| Windows | 双击项目根目录下的 `启动EEGWorkbench.exe`（该文件被 `.gitignore` 排除，不随仓库分发，需要时用 PyInstaller 自行打包，或改走下面的「命令行运行」） |
-| Linux / macOS | `./run.sh`（首次自动创建 `.venv` 并安装依赖，约 3-5 分钟；之后直接秒启） |
+**方式一：双击运行（无需敲命令）**
 
-> 两者都要求同目录下有 `src/`；Windows 的 `.exe` 另外要求 `.venv/`（由启动器自身保证），`run.sh` 则会自己创建。`run.sh` 随仓库分发，开箱即用。
+双击项目根目录下的 `启动EEGWorkbench.exe`。该文件被 `.gitignore` 排除、**不随仓库分发**
+（[Releases](https://github.com/da-shan007/EEG-Visualization-Research-Workbench/releases)
+的 Windows 安装包内才有），需要时可用 PyInstaller 自行打包，或改走「方式二」。
+
+**方式二：命令行运行（从源码）**
+
+```powershell
+# 1. 下载源码
+git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
+cd EEG-Visualization-Research-Workbench
+
+# 2. 创建虚拟环境并安装依赖（约 3-5 分钟）
+conda env create -f environment.yml
+conda activate eeg-workbench
+
+# 3. 启动（必须先 cd src）
+cd src
+python -m eeg_workbench
+```
+
+> Windows 的 `.exe` 要求同目录下有 `src/` 与 `.venv/`（后者由启动器自身保证）。
+
+### Linux
+
+**方式一：一键脚本（推荐）**
+
+```bash
+# 1. 下载源码
+git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
+cd EEG-Visualization-Research-Workbench
+
+# 2. 建 venv + 装依赖 + 启动（首次约 3-5 分钟，之后直接秒启）
+./run.sh
+```
+
+> `run.sh` 随仓库分发、开箱即用。它自己创建 `.venv`，用的是 POSIX 布局
+>（`.venv/bin/python`），与 Windows 的 `.venv/Scripts/python.exe` **不通用**——
+> 两个平台的 venv 不要互相拷贝。
+
+**方式二：conda**
+
+```bash
+conda env create -f environment.yml
+conda activate eeg-workbench
+PYTHONPATH=src python -m eeg_workbench
+```
+
+**方式三：venv + pip**
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements-lock.txt
+PYTHONPATH=src python -m eeg_workbench
+```
+
+**已安装（pip）**
+
+```bash
+pip install -e .
+eeg-workbench
+```
 
 ### Linux 系统依赖（先装这些，否则 Qt 起不来）
 
@@ -144,51 +217,6 @@ sudo pacman -S python python-pip noto-fonts-cjk wqy-microhei
 
 ```bash
 python -c "from PySide6.QtWidgets import QApplication; print('Qt OK')"
-```
-
-### 命令行运行（推荐）
-
-**Windows（PowerShell）**
-
-```powershell
-# 1. 下载源码
-git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
-cd EEG-Visualization-Research-Workbench
-
-# 2. 创建虚拟环境并安装依赖（约 3-5 分钟）
-conda env create -f environment.yml
-conda activate eeg-workbench
-
-# 3. 启动（必须先 cd src）
-cd src
-python -m eeg_workbench
-```
-
-**macOS / Linux（bash）**
-
-```bash
-git clone https://github.com/da-shan007/EEG-Visualization-Research-Workbench.git
-cd EEG-Visualization-Research-Workbench
-
-# 路线 A：一键脚本（建 venv + 装依赖 + 启动）
-./run.sh
-
-# 路线 B：conda
-conda env create -f environment.yml
-conda activate eeg-workbench
-PYTHONPATH=src python -m eeg_workbench
-
-# 路线 C：venv + pip
-python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements-lock.txt
-PYTHONPATH=src python -m eeg_workbench
-```
-
-**已安装（pip）**
-
-```bash
-pip install -e .
-eeg-workbench
 ```
 
 常见问题：
@@ -220,7 +248,7 @@ $env:QT_QPA_PLATFORM='offscreen'; pytest tests/ -q
 ```
 
 ```bash
-# Linux / macOS
+# Linux
 QT_QPA_PLATFORM=offscreen pytest tests/ -q
 ```
 
@@ -255,7 +283,7 @@ outputs/
 
 ## 故障排除
 
-- **中文显示异常**: Qt 界面与 matplotlib 图形都会自动探测系统中文字体（Windows/macOS/Linux 各自的候选列表见 `src/eeg_workbench/utils/fonts.py`）。若启动时 stderr 打印了「未检测到中文字体」，按提示装 `fonts-noto-cjk` / `fonts-wqy-microhei` 即可；仍未生效请提 issue。
+- **中文显示异常**: Qt 界面与 matplotlib 图形都会自动探测系统中文字体（Windows / Linux 各自的候选列表见 `src/eeg_workbench/utils/fonts.py`）。若启动时 stderr 打印了「未检测到中文字体」，按提示装 `fonts-noto-cjk` / `fonts-wqy-microhei` 即可；仍未生效请提 issue。
 - **Linux Qt 起不来**: `qt.qpa.plugin: Could not load the Qt platform plugin "xcb"` 表示缺系统库，见「Linux 系统依赖」。
 - **窄带滤波警告** (`filter_length`): 窄带 FIR 需要物理最小长度，极短数据段无法满足是正常现象，用更长的数据段即可，不是 bug。
 - **MNE 版本**: 依赖已用 `requirements-lock.txt` 锁定为 MNE 1.13.2，自行升级可能遇到 `standard_1020` 等 API 更名问题（代码内已有兼容层）。

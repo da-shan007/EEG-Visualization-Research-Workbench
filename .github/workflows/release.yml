@@ -1,0 +1,225 @@
+# Release for EEG Workbench
+#
+# 双平台发行策略（macOS 明确不在支持范围内，不要给它加矩阵项）：
+#
+#   Windows  -> EEGWorkbench-<版本>-win64.exe
+#               PyInstaller one-file 打的「薄启动器」。它本身不含科学计算栈，
+#               首次运行时检查同目录的 src/ 与 .venv/，缺失则自动补齐后拉起
+#               .venv\Scripts\python.exe -m eeg_workbench。
+#               选薄启动器而不是全量打包：MNE/scipy/sklearn 的体积让全量包
+#               动辄 1-2 GB，而薄启动器复用锁文件重建环境，体积小且依赖版本
+#               与 requirements-lock.txt 严格一致。
+#
+#   Linux    -> EEGWorkbench-<版本>-linux-x86_64.tar.gz
+#               源码包 + run.sh。**不用 PyInstaller**：PySide6 的 wheel 不含
+#               xcb 平台插件与中文字体，这两样只能系统级安装，所以 Linux 上
+#               本就不存在「自包含二进制」；run.sh 自己建 .venv、装锁定依赖，
+#               依赖解析路径与 Windows 端完全一致，行为可预期、可测试。
+#
+# 两个产物由同一个 tag 发布，保证同一版本号在两端内容一致。
+#
+# 触发方式：
+#   git tag v0.1.0 && git push origin v0.1.0
+#   或 Actions 页面手动 workflow_dispatch 并填 tag。
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要发布的 tag，例如 v0.1.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  PYTHONUTF8: "1"
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  # 打包前置条件：该 tag 的 CI 必须是绿的，否则不发。
+  guard:
+    name: Guard — CI must be green
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: resolve
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="$GITHUB_REF_NAME"
+          fi
+          case "$TAG" in
+            v*) ;;
+            *) echo "tag 必须以 v 开头，实际为: $TAG" >&2; exit 1 ;;
+          esac
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the tag's CI run succeeded
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = '${{ steps.resolve.outputs.tag }}';
+            const sha = context.payload.sha;
+            const { data } = await github.rest.repos.listWorkflowRuns({
+              owner: context.repo.owner, repo: context.repo.repo,
+              workflow_id: 'ci.yml', head_sha: sha, per_page: 20
+            });
+            if (!data.workflow_runs.length) {
+              core.setFailed(`CI 没有为 ${sha.slice(0,7)} 跑过，请先等 CI 跑完。`);
+              return;
+            }
+            const failed = data.workflow_runs.filter(r => r.conclusion !== 'success');
+            if (failed.length) {
+              core.setFailed('CI 未全部通过: ' +
+                failed.map(r => `${r.name}=${r.conclusion}`).join(', '));
+              return;
+            }
+            core.info(`CI 全绿（${data.workflow_runs.length} 个 run），放行发布 ${tag}`);
+
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      version: ${{ steps.resolve.outputs.version }}
+
+  build:
+    name: Build (${{ matrix.os }})
+    needs: guard
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+
+      # ---------------------------------------------------------------- Windows
+      - name: Build Windows thin launcher (.exe)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # 锁文件里的 pyinstaller 版本与 CI 安装的保持一致，避免本地/CI 产物漂移
+          python -m pip install --disable-pip-version-check "pyinstaller==6.22.3"
+          $name = "EEGWorkbench-${{ needs.guard.outputs.version }}-win64"
+          # --add-data 用 ';' 分隔（仅 Windows 分支需要）
+          # --windowed：不弹控制台窗口，错误走 launcher.py 里的 MessageBox
+          python -m PyInstaller `
+            --noconfirm --clean --onefile --windowed `
+            --name $name `
+            --add-data "requirements-lock.txt;." `
+            launcher.py
+          New-Item -ItemType Directory -Force -Path dist-pkg | Out-Null
+          Move-Item -Force "dist\$name.exe" "dist-pkg\$name.exe"
+          Get-Item "dist-pkg\$name.exe" | Select-Object Name, Length
+
+      # ------------------------------------------------------------------ Linux
+      # Qt xcb 插件与中文字体不在 pip wheel 里，必须用户自行 apt/dnf/pacman 安装，
+      # 所以 Linux 发行包附一份依赖说明，避免用户装完就跑不起来。
+      - name: Build Linux source bundle (.tar.gz)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ needs.guard.outputs.version }}"
+          pkg="EEGWorkbench-${version}-linux-x86_64"
+          rm -rf dist dist-pkg
+          mkdir -p "dist-pkg/${pkg}" dist
+
+          # 只打包运行必需的文件，不含 tests/ 与 .git/，避免体积膨胀
+          cp -r src "dist-pkg/${pkg}/src"
+          cp run.sh requirements-lock.txt README.md LICENSE "dist-pkg/${pkg}/"
+          cp docs/INSTALL_LINUX.md "dist-pkg/${pkg}/INSTALL_LINUX.md"
+
+          # run.sh 必须是 755，否则解压后无法直接执行
+          chmod +x "dist-pkg/${pkg}/run.sh"
+
+          tar -czf "dist/${pkg}.tar.gz" -C dist-pkg "${pkg}"
+          # 校验包内 run.sh 的权限位确实是 755（tar 会保留 mode）
+          mode=$(tar -tvzf "dist/${pkg}.tar.gz" | grep -E 'run\.sh$' | awk '{print $1}')
+          echo "packaged run.sh mode: ${mode}"
+          case "$mode" in
+            -rwxr-xr-x*) ;;
+            *) echo "run.sh 未带可执行位，发行包有问题" >&2; exit 1 ;;
+          esac
+          ls -lh dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.os }}
+          path: dist-pkg/
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [guard, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: downloaded
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -lh downloaded/
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          # 手动触发时没有 tag 事件，显式传 tag_name
+          tag_name: ${{ needs.guard.outputs.tag }}
+          name: ${{ needs.guard.outputs.tag }}
+          files: downloaded/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          body: |
+            ## 平台支持
+
+            | 平台 | 状态 | 产物 |
+            |------|------|------|
+            | Windows 64 位 | ✅ 支持 | `EEGWorkbench-${{ needs.guard.outputs.version }}-win64.exe` |
+            | Linux x86_64 | ✅ 支持 | `EEGWorkbench-${{ needs.guard.outputs.version }}-linux-x86_64.tar.gz` |
+
+            **macOS 尚未适配**，不在支持范围内。
+
+            ---
+
+            ### Windows 用户
+
+            1. 下载 `*-win64.exe`，双击即可。
+            2. 首次运行会自动准备环境（下载 `src/` + 按 `requirements-lock.txt`
+               建 `.venv`），需要几分钟；之后每次双击直接启动。
+            3. 需要本机装有 Python 3.12+。
+
+            ### Linux 用户
+
+            1. **先装系统依赖**（Qt 的 xcb 平台插件与中文字体不在 pip wheel 里）：
+
+               ```bash
+               # Debian / Ubuntu / Kali
+               sudo apt install libegl1 libgl1 libglx-mesa0 libopengl0 \
+                 libxkbcommon-x11-0 libdbus-1-3 libxcb-cursor0 libxcb-icccm4 \
+                 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+                 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libfontconfig1 \
+                 fonts-noto-cjk fonts-wqy-microhei
+               ```
+
+               详见包内的 `INSTALL_LINUX.md`。
+            2. 解压后执行 `./run.sh`（首次自动建 venv 装依赖，约 3-5 分钟）。
+            3. 无显示器时用 `./run.sh --offscreen`，或安装 xvfb。
+
+            ---
+
+            完整说明见 [README](https://github.com/da-shan007/EEG-Visualization-Research-Workbench#平台支持)。
