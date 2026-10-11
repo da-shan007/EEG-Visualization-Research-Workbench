@@ -16,6 +16,12 @@ on:
         description: "要测的 commit / branch / tag"
         required: false
         default: "1509412"
+  # 临时触发通道：只改这两个文件时自动跑，跑完会把这段删掉。
+  # 没有仓库级 token 时用这条路径代替手动点 Run workflow。
+  push:
+    paths:
+      - ".github/workflows/kali-smoke.yml"
+      - "tools/kali_smoke.sh"
 
 permissions:
   contents: read
