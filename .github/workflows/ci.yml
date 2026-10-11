@@ -10,6 +10,13 @@
 #
 # 矩阵覆盖 Windows + Ubuntu 两个 runner：项目需同时在两端可运行，
 # Linux 侧额外安装 Qt xcb 系统依赖与中文字体（见 test job 的 apt 步骤）。
+#
+# 为什么 Linux 还要跑 Python 3.12：
+#   锁文件里的 pyEDFlib 0.1.42 只发到 cp313 的 wheel，且 cp313 的 Linux 轮子
+#   只有 aarch64 —— 也就是说 Linux x86_64 上只有 3.10/3.11/3.12 能纯靠轮子
+#   装完全部依赖，3.13/3.14 必须有编译器（gcc + python3-dev）。
+#   3.12 才是绝大多数 Linux 用户的默认版本，也是 run.sh 优先挑选的版本，
+#   所以它必须被 CI 覆盖，而不是只在 3.14 上测一遍就宣称 Linux 可用。
 
 name: CI
 
@@ -62,7 +69,12 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        python-version: ["3.14"]
+        python-version: ["3.12", "3.14"]
+        # 3.12 只在 Linux 上跑（见下面那条注释）。Windows 侧的 3.14 已经覆盖
+        # 主流用法，再加一个 3.12 只是重复消耗 runner 时间。
+        exclude:
+          - os: windows-latest
+            python-version: "3.12"
     steps:
       - uses: actions/checkout@v4
 
@@ -90,6 +102,18 @@ jobs:
         run: |
           python -m pip install --disable-pip-version-check --upgrade pip
           python -m pip install -r requirements-lock.txt
+
+      - name: Verify pyEDFlib ships a wheel for this Python (the no-compiler claim)
+        if: runner.os == 'Linux'
+        run: |
+          # 文档里承诺「Linux 用 Python 3.12 不需要编译器」，那这条承诺就得有人
+          # 守着。pyEDFlib 是整个锁文件里唯一没有纯 python 兜底的 C 扩展，
+          # 一旦上游发布新版把 cp312 轮子撤掉，这条命令会立刻失败，
+          # 而不是等到某个用户装不上才发现文档在骗人。
+          python -m pip download --disable-pip-version-check \
+            --no-deps --only-binary=:all: --dest /tmp/wheelcheck \
+            "pyEDFlib==0.1.42"
+          rm -rf /tmp/wheelcheck
 
       - name: Environment report
         run: |

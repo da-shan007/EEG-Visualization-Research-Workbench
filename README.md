@@ -103,7 +103,7 @@ src/eeg_workbench/
 | 项目 | 要求 |
 |------|------|
 | Windows | 64 位；需要 Microsoft Visual C++ 2015-2022 运行库；中文界面使用系统自带字体（微软雅黑 / 黑体），无需额外安装 |
-| Linux | x86_64；**pip 装不上 Qt 的 xcb 平台插件与中文字体**，必须系统级安装，见下方「[Linux 系统依赖](#linux-系统依赖先装这些否则-qt-起不来)」；无显示器时需 xvfb 或设置 `QT_QPA_PLATFORM=offscreen` |
+| Linux | x86_64；**pip 装不上 Qt 的 xcb 平台插件与中文字体**，必须系统级安装，见下方「[Linux 系统依赖](#linux-系统依赖先装这些否则-qt-起不来)」；无显示器时需 xvfb 或设置 `QT_QPA_PLATFORM=offscreen`；**建议用 Python 3.12**，用 3.13/3.14 则需额外安装 C 编译器（同样是 pyEDFlib 没有现成轮子导致的） |
 | 共同 | Python 3.12+，见 `environment.yml` / `requirements-lock.txt`（版本已锁定防 MNE API 漂移） |
 
 ## 依赖环境 (实测可复现)
@@ -196,7 +196,7 @@ eeg-workbench
 `PySide6` 的 pip wheel **不包含** xcb 平台插件和中文字体，必须系统级安装：
 
 ```bash
-# Debian / Ubuntu
+# Debian / Ubuntu / Kali
 sudo apt install python3.12 python3.12-venv python3-pip
 sudo apt install libegl1 libgl1 libglx-mesa0 libopengl0 libxkbcommon-x11-0 \
                  libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
@@ -212,6 +212,31 @@ sudo dnf install mesa-libGL mesa-libEGL libxkbcommon-x11 dbus-libs fontconfig \
 # Arch
 sudo pacman -S python python-pip noto-fonts-cjk wqy-microhei
 ```
+
+#### 为什么上面写的是 `python3.12` 而不是 `python3`
+
+锁文件里 140 个包中，只有 **`pyEDFlib`** 一个带 C 扩展且不带纯 Python 兜底，所以只有它会「装不上就得编译」。而 pyEDFlib 0.1.42 只发布到 cp313：
+
+| Linux x86_64 上的 Python | 装 pyEDFlib 的方式 |
+|---|---|
+| **3.12（推荐）** | 直接用预编译轮子，**不需要编译器** |
+| 3.13 | 只有 aarch64 轮子，x86_64 需源码编译 |
+| 3.14 | 完全没有轮子，任何平台都需源码编译 |
+
+其余 C 扩展（PySide6、shiboken6、numpy、scipy、pandas 等）在 3.12–3.14 都有现成轮子，不受影响。
+
+如果你机器上只有 Python 3.13/3.14（比如 Kali 默认就是），那就把编译器一起装上，`run.sh` 会正常安装：
+
+```bash
+sudo apt install build-essential python3-dev      # Debian / Ubuntu / Kali
+sudo dnf install gcc python3-devel                # Fedora
+sudo pacman -S base-devel                         # Arch
+```
+
+> 这一条不是纸上推演：2026-10-11 在真实 Kali 容器里实测过，缺编译器时
+> `pip` 会停在 `Building wheel for pyEDFlib ... x86_64-linux-gnu-gcc: No such file or directory`。
+> `run.sh` 现在会在装依赖**之前**检查这件事并直接给出上面两条修复路径，
+> 不会再让你等 pip 编到一半才看一屏 gcc 报错。
 
 装完先验证 Qt 本身能起来（这一步过了，pip 依赖装好后程序就能跑）：
 
@@ -285,6 +310,7 @@ outputs/
 
 - **中文显示异常**: Qt 界面与 matplotlib 图形都会自动探测系统中文字体（Windows / Linux 各自的候选列表见 `src/eeg_workbench/utils/fonts.py`）。若启动时 stderr 打印了「未检测到中文字体」，按提示装 `fonts-noto-cjk` / `fonts-wqy-microhei` 即可；仍未生效请提 issue。
 - **Linux Qt 起不来**: `qt.qpa.plugin: Could not load the Qt platform plugin "xcb"` 表示缺系统库，见「Linux 系统依赖」。
+- **Linux 装依赖时报 `Building wheel for pyEDFlib ... did not run successfully` 或 `x86_64-linux-gnu-gcc: No such file or directory`**: 当前 Python 是 3.13/3.14，pyEDFlib 在这些版本上没有现成轮子，只能源码编译而本机没有编译器。装 `build-essential python3-dev`，或改用 Python 3.12（见「[为什么上面写的是 python3.12](#为什么上面写的是-python312而不是-python3)」）。`run.sh` 会在装依赖前就检查并给出这两条路。
 - **窄带滤波警告** (`filter_length`): 窄带 FIR 需要物理最小长度，极短数据段无法满足是正常现象，用更长的数据段即可，不是 bug。
 - **MNE 版本**: 依赖已用 `requirements-lock.txt` 锁定为 MNE 1.13.2，自行升级可能遇到 `standard_1020` 等 API 更名问题（代码内已有兼容层）。
 

@@ -33,6 +33,7 @@ record() {  # record <名称> <PASS|FAIL|SKIP> <说明>
 step "0. Kali 环境快照"
 cat /etc/os-release 2>/dev/null | head -4
 echo "python3: $(command -v python3 || echo 'NOT FOUND') $(python3 -V 2>&1)"
+echo "gcc:     $(command -v gcc || echo 'NOT FOUND') $(gcc --version 2>/dev/null | head -1)"
 echo "kernel:   $(uname -srm)"
 echo "user:     $(id -un) uid=$(id -u)"
 echo "arch:     $(dpkg --print-architecture 2>/dev/null || uname -m)"
@@ -46,8 +47,13 @@ echo "apt-get update rc=$?"
 # ca-certificates：裸镜像里没有，git clone https 会报 "Problem with the SSL CA cert"
 # python3/venv/pip：裸镜像里连 python3 都没有（真实 Kali 装机自带，但容器不是），
 #   这里显式装上，等价于 INSTALL_LINUX.md 让用户自己敲的那几条
+# build-essential + python3-dev：Kali 的 python3 是 3.13/3.14，而 pyEDFlib 0.1.42
+#   只发到 cp313、且 cp313 的 Linux 轮子只有 aarch64，cp314 完全没有 —— 所以在这
+#   两个版本上必须从 sdist 编译。首次实测就是卡在这里（gcc: No such file or
+#   directory）。Kali 没有更老的 python3.12 可用，只能走编译这条路，这也是
+#   INSTALL_LINUX.md「办法 B」的内容。
 APT_PKGS="ca-certificates git xvfb x11-utils imagemagick fontconfig \
-python3 python3-venv python3-pip \
+python3 python3-venv python3-pip build-essential python3-dev \
 libegl1 libgl1 libglx-mesa0 libopengl0 libxkbcommon-x11-0 libdbus-1-3 \
 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libfontconfig1 \
@@ -404,4 +410,12 @@ echo "失败项数: $FAILURES"
 } > "$OUT/REPORT.md"
 
 echo "报告已写入 $OUT/REPORT.md"
+
+# 必须让 CI 如实反映结果。之前这里无条件 exit 0，导致「4 项 FAIL」在 Actions 上
+# 显示成绿色 success —— 一个会说谎的测试比没有测试更糟。
+if [ "$FAILURES" -gt 0 ]; then
+  printf '\033[31m[FAIL]\033[0m 有 %d 项未通过，退出码 1。\n' "$FAILURES" >&2
+  exit 1
+fi
+echo "全部通过，退出码 0"
 exit 0
