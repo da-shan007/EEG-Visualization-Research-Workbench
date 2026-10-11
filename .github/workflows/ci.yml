@@ -103,8 +103,12 @@ jobs:
           python -m pip install --disable-pip-version-check --upgrade pip
           python -m pip install -r requirements-lock.txt
 
-      - name: Verify pyEDFlib ships a wheel for this Python (the no-compiler claim)
-        if: runner.os == 'Linux'
+      - name: Verify pyEDFlib ships a wheel for Python 3.12 (the no-compiler claim)
+        # 只在 3.12 上跑，这条命令在 3.13/3.14 上本来就该失败：
+        # 那两个版本没有 pyEDFlib 轮子，装它们必须带编译器，属于预期行为，
+        # 不是回归。在 3.14 上跑只会把「有编译器也装得上」和「有轮子」这两件
+        # 不同的事混在一起，掩盖真正要守的那条承诺。
+        if: runner.os == 'Linux' && matrix.python-version == '3.12'
         run: |
           # 文档里承诺「Linux 用 Python 3.12 不需要编译器」，那这条承诺就得有人
           # 守着。pyEDFlib 是整个锁文件里唯一没有纯 python 兜底的 C 扩展，
