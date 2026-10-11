@@ -1,0 +1,55 @@
+# ============================================================================
+# Kali 容器实测（在真正的 kalilinux/kali-rolling 用户空间里跑完整用户流程）
+#
+# 与 ci.yml 的区别：
+#   ci.yml  → ubuntu-latest 裸机，只跑测试套件
+#   本文件 → Kali 容器 + Xvfb，跑「普通用户 clone → ./run.sh → 用 GUI」的完整体验
+#
+# 只手动触发，不进 push 自动流程（装 140 个依赖太慢）。
+# ============================================================================
+name: Kali Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "要测的 commit / branch / tag"
+        required: false
+        default: "1509412"
+
+permissions:
+  contents: read
+
+jobs:
+  kali-smoke:
+    name: Kali container smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run smoke test inside Kali container
+        run: |
+          set -o pipefail
+          mkdir -p "${RUNNER_TEMP}/kali-out"
+          docker run --rm \
+            --shm-size=1g \
+            -v "$PWD:/repo:ro" \
+            -v "${RUNNER_TEMP}/kali-out:/out" \
+            -e OUT=/out \
+            kalilinux/kali-rolling \
+            bash /repo/tools/kali_smoke.sh "${{ inputs.ref }}" \
+            2>&1 | tee "${RUNNER_TEMP}/kali.log"
+
+      - name: Upload report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kali-smoke-report
+          path: ${{ runner.temp }}/kali-out/
+          if-no-files-found: warn
+
+      - name: Print report
+        if: always()
+        run: cat "${RUNNER_TEMP}/kali-out/REPORT.md" || echo "没有生成 REPORT.md"
