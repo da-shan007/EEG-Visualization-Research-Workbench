@@ -6,6 +6,10 @@
 #   本文件 → Kali 容器 + Xvfb，跑「普通用户 clone → ./run.sh → 用 GUI」的完整体验
 #
 # 只手动触发，不进 push 自动流程（装 140 个依赖太慢）。
+#
+# 最近一次实测：run 38119067904（head a0cd4a2）14 项全部 PASS，
+# 其中 GUI 启动、依赖安装、Qt 中文字体、EDF/BDF 读取、GUI 加载 EDF
+# 这几项正是上一轮挂掉的地方。报告见 tools/kali_smoke.sh 生成的 REPORT.md。
 # ============================================================================
 name: Kali Smoke Test
 
@@ -15,13 +19,7 @@ on:
       ref:
         description: "要测的 commit / branch / tag"
         required: false
-        default: "1509412"
-  # 临时触发通道：只改这两个文件时自动跑，跑完会把这段删掉。
-  # 没有仓库级 token 时用这条路径代替手动点 Run workflow。
-  push:
-    paths:
-      - ".github/workflows/kali-smoke.yml"
-      - "tools/kali_smoke.sh"
+        default: "120eaa7"
 
 permissions:
   contents: read
