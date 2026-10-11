@@ -43,7 +43,11 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq >"$OUT/apt-update.log" 2>&1
 echo "apt-get update rc=$?"
 
-APT_PKGS="git xvfb x11-utils imagemagick fontconfig \
+# ca-certificates：裸镜像里没有，git clone https 会报 "Problem with the SSL CA cert"
+# python3/venv/pip：裸镜像里连 python3 都没有（真实 Kali 装机自带，但容器不是），
+#   这里显式装上，等价于 INSTALL_LINUX.md 让用户自己敲的那几条
+APT_PKGS="ca-certificates git xvfb x11-utils imagemagick fontconfig \
+python3 python3-venv python3-pip \
 libegl1 libgl1 libglx-mesa0 libopengl0 libxkbcommon-x11-0 libdbus-1-3 \
 libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
 libxcb-render-util0 libxcb-shape0 libxcb-xinerama0 libxcb-xkb1 libfontconfig1 \
